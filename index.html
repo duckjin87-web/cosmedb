@@ -163,6 +163,19 @@ tr.muted .co .cnm{font-weight:500;color:var(--ink-3);text-decoration:line-throug
 thead th.sk{z-index:45}
 .edge::after{content:"";position:absolute;top:0;right:0;bottom:0;width:1px;background:var(--line-2);
  box-shadow:3px 0 6px -3px rgba(28,35,51,.18)}
+/* 일정 입력칸 (업체/협생/품보 가능일) */
+.dayin{width:100%;min-width:56px;font:inherit;font-size:11.5px;color:var(--ink-2);
+ border:.5px solid transparent;background:rgba(59,79,138,.06);border-radius:6px;padding:3px 6px;line-height:1.3}
+.dayin::placeholder{color:var(--ink-3);font-size:10.5px}
+.dayin:hover{background:rgba(59,79,138,.12)}
+.dayin:focus{outline:none;border-color:var(--navy);background:#fff;color:var(--ink)}
+.dept .dayin{flex:1;min-width:0}
+/* 열 크기 조정 핸들 */
+.rz{position:absolute;top:0;right:-3px;width:8px;height:100%;cursor:col-resize;z-index:46;touch-action:none;user-select:none}
+.rz::after{content:"";position:absolute;top:6px;bottom:6px;right:3px;width:2px;border-radius:2px;background:transparent;transition:background .15s}
+.rz:hover::after,.rz.on::after{background:var(--navy-l)}
+/* 열그룹 구분선 */
+#t3 .gsep{border-left:1.5px solid var(--line-2)}
 
 /* eval cards */
 .egrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:11px}
@@ -976,7 +989,14 @@ const VCOLS=[
 const VGROUPS=[{k:"fix",t:"고정",lock:true},{k:"co",t:"① 업체정보"},{k:"ct",t:"② 연락 · 자료",off:true},
  {k:"sch",t:"③ 일정협의"},{k:"sel",t:"④ 선정"},{k:"vis",t:"⑤ 방문 결과"},{k:"log",t:"⑥ 이력"}];
 const VHIDE={}; VGROUPS.forEach(function(g){if(g.off)VHIDE[g.k]=true});
+/* 열그룹별 미세 색상 (같은 톤, 그룹헤더 g / 열헤더 c) */
+const VGTINT={
+ co:{g:"#D9E0F1",c:"#E9EDF7"}, ct:{g:"#DCE3EF",c:"#EBEFF6"},
+ sch:{g:"#D5E2E7",c:"#E7EFF1"}, sel:{g:"#E1DDEC",c:"#EEEAF5"},
+ vis:{g:"#D9E6DC",c:"#E8F1EA"}, log:{g:"#E3E1DC",c:"#EFEDE9"}
+};
 let vf="all";
+let T3COLS=[];
 
 const VISITS=[];
 (function seedVisits(){
@@ -1018,9 +1038,9 @@ function vcell(v,c,i){
     case "dd":{const d=ddayOf(v);return d.t==="—"?dim("—"):"<span class='"+d.c+"'>"+d.t+"</span>";}
     case "trip":return !v.fix?"<div class='trip'><span class='none'>방문일 확정 후</span></div>"
       :"<div class='trip'><input type='time' value='"+(v.time||"")+"' data-vt='"+i+"'><span class='calc'></span></div>";
-    case "vend":return v.vend?"<div class='days'>"+esc(v.vend)+"</div>":dim("미접수");
-    case "coop":return "<div class='days dept'><b class='b-c'>협생</b><span>"+(v.coop?esc(v.coop):"<span class='dim'>미입력</span>")+"</span></div>";
-    case "qa":return "<div class='days dept'><b class='b-q'>품보</b><span>"+(v.qa?esc(v.qa):"<span class='dim'>미입력</span>")+"</span></div>";
+    case "vend":return "<input class='dayin' data-vf='vend' data-i='"+i+"' value=\""+esc(v.vend)+"\" placeholder='미접수 · 예: 8/25 이후'>";
+    case "coop":return "<div class='days dept'><b class='b-c'>협생</b><input class='dayin' data-vf='coop' data-i='"+i+"' value=\""+esc(v.coop)+"\" placeholder='미입력 · 예: 7/23~24'></div>";
+    case "qa":return "<div class='days dept'><b class='b-q'>품보</b><input class='dayin' data-vf='qa' data-i='"+i+"' value=\""+esc(v.qa)+"\" placeholder='미입력 · 예: 7/23~24'></div>";
     case "both":{const b=interK(parseDates(v.coop),parseDates(v.qa));
       if(!v.coop&&!v.qa)return dim("—");
       return b.length?"<span class='res'>"+compressK(b)+"</span>":"<span class='res bad'>없음</span>";}
@@ -1052,14 +1072,17 @@ function paintTrips(){
 function drawT3(){
   const cols=VCOLS.filter(function(c){return !VHIDE[c.g]});
   const rows=VISITS.filter(function(v){return vf==="all"||v.st===vf});
+  const gstart=cols.map(function(c,i){return i>0&&c.g!==cols[i-1].g;});
   let h="<thead><tr class='g'>";
   VGROUPS.forEach(function(g){if(VHIDE[g.k])return;
     const n=cols.filter(function(c){return c.g===g.k}).length; if(!n)return;
-    h+="<th colspan='"+n+"'>"+(g.k==="fix"?"":g.t)+"</th>";});
+    const t=VGTINT[g.k];
+    h+="<th colspan='"+n+"'"+(g.k!=="fix"?" class='gsep'":"")+(t?" style='background:"+t.g+"'":"")+">"+(g.k==="fix"?"":g.t)+"</th>";});
   h+="</tr><tr class='c'>";
   let l=0;
-  cols.forEach(function(c,i){const sk=(c.g==="fix"&&i<2);
-    h+="<th class='"+(sk?"sk":"")+(sk&&i===1?" edge":"")+"' style='width:"+c.w+"px;min-width:"+c.w+"px"+(sk?";left:"+l+"px":"")+"'>"+c.t+"</th>";
+  cols.forEach(function(c,i){const sk=(c.g==="fix"&&i<2);const t=VGTINT[c.g];
+    const cls=[(sk?"sk":""),(sk&&i===1?"edge":""),(gstart[i]?"gsep":"")].filter(Boolean).join(" ");
+    h+="<th"+(cls?" class='"+cls+"'":"")+" style='"+(t?"background:"+t.c+";":"")+"width:"+c.w+"px;min-width:"+c.w+"px"+(sk?";left:"+l+"px":"")+"'>"+esc(c.t)+"<span class='rz' data-ci='"+i+"'></span></th>";
     if(sk)l+=c.w;});
   h+="</tr></thead><tbody>";
   if(!rows.length)h+="<tr><td colspan='"+cols.length+"'><div class='empty-s'>해당 상태의 방문 건이 없습니다.</div></td></tr>";
@@ -1069,16 +1092,41 @@ function drawT3(){
     h+="<tr class='s-"+v.st+(muted?" muted":"")+"'>";
     let x=0;
     cols.forEach(function(c,ci){const sk=(c.g==="fix"&&ci<2);
-      h+="<td class='"+(c.a||"")+(sk?" sk":"")+(sk&&ci===1?" edge":"")+"'"+
+      const cls=[(c.a||""),(sk?"sk":""),(sk&&ci===1?"edge":""),(gstart[ci]?"gsep":"")].filter(Boolean).join(" ");
+      h+="<td"+(cls?" class='"+cls+"'":"")+" data-r='"+i+"' data-k='"+c.k+"'"+
         (sk?" style='left:"+x+"px;background:"+VST[v.st].tint+"'":"")+">"+vcell(v,c,i)+"</td>";
       if(sk)x+=c.w;});
     h+="</tr>";
   });
   h+="</tbody>";
+  T3COLS=cols;
   document.getElementById("t3").innerHTML=h;
   document.getElementById("b3").textContent=VISITS.length;
   document.querySelectorAll("[data-vt]").forEach(function(e){e.addEventListener("input",function(){
     VISITS[+e.dataset.vt].time=e.value; paintTrips();})});
+  /* 가능일 입력 → 값 갱신 + 부서공통·최종공통 자동 재계산 */
+  document.querySelectorAll("#t3 .dayin").forEach(function(inp){
+    inp.addEventListener("input",function(){
+      const i=+inp.dataset.i, f=inp.dataset.vf; VISITS[i][f]=inp.value;
+      ["both","final"].forEach(function(k){
+        const td=document.querySelector("#t3 td[data-r='"+i+"'][data-k='"+k+"']");
+        if(td){const col=VCOLS.filter(function(c){return c.k===k})[0]; td.innerHTML=vcell(VISITS[i],col,i);}
+      });
+    });
+  });
+  /* 열 크기 조정 */
+  document.querySelectorAll("#t3 thead tr.c .rz").forEach(function(hd){
+    hd.addEventListener("mousedown",function(e){
+      e.preventDefault();
+      const ci=+hd.dataset.ci, col=T3COLS[ci], sx=e.clientX, sw=col.w; let raf=0;
+      hd.classList.add("on"); document.body.style.userSelect="none";
+      function mv(ev){col.w=Math.max(48,sw+(ev.clientX-sx));
+        if(!raf)raf=requestAnimationFrame(function(){raf=0;drawT3();});}
+      function up(){document.removeEventListener("mousemove",mv);document.removeEventListener("mouseup",up);
+        document.body.style.userSelect="";drawT3();}
+      document.addEventListener("mousemove",mv); document.addEventListener("mouseup",up);
+    });
+  });
   document.querySelectorAll("[data-vs]").forEach(function(e){e.onchange=function(){
     const v=VISITS[+e.dataset.vs], was=v.st; v.st=e.value;
     v.ch=iso(TODAY); v.note=VST[was].label+" → "+VST[v.st].label;
