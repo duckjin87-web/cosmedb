@@ -170,12 +170,27 @@ thead th.sk{z-index:45}
 .dayin:hover{background:rgba(59,79,138,.12)}
 .dayin:focus{outline:none;border-color:var(--navy);background:#fff;color:var(--ink)}
 .dept .dayin{flex:1;min-width:0}
+.dtin{font:inherit;font-size:11px;font-variant-numeric:tabular-nums;color:var(--ink-2);
+ border:.5px solid transparent;background:rgba(59,79,138,.08);border-radius:6px;padding:2.5px 5px;cursor:pointer}
+.dtin:focus{outline:none;border-color:var(--navy);background:#fff;color:var(--ink)}
+.elap{font-size:11.5px;font-weight:600;color:var(--ink-2)}
+.elap.late{background:#FFF7E6;color:#8A5300;padding:2px 7px;border-radius:980px}
+.elap .bell{margin-left:3px;font-weight:400;cursor:help}
 /* 열 크기 조정 핸들 */
 .rz{position:absolute;top:0;right:-3px;width:8px;height:100%;cursor:col-resize;z-index:46;touch-action:none;user-select:none}
 .rz::after{content:"";position:absolute;top:6px;bottom:6px;right:3px;width:2px;border-radius:2px;background:transparent;transition:background .15s}
 .rz:hover::after,.rz.on::after{background:var(--navy-l)}
 /* 열그룹 구분선 */
 #t3 .gsep{border-left:1.5px solid var(--line-2)}
+/* 마스터 업로드 미리보기 카드 */
+.upcard{border:.5px solid var(--line-2);border-radius:10px;margin-top:8px;overflow:hidden}
+.uphd{display:flex;align-items:center;gap:7px;background:var(--navy-50);padding:7px 11px;font-size:12.5px}
+.uprow{display:flex;gap:10px;padding:6px 11px;border-top:.5px solid var(--line);font-size:12px}
+.upf{flex:0 0 34%;color:var(--ink-2);font-weight:600}
+.upf em{font-style:normal;font-size:9.5px;font-weight:700;background:rgba(232,163,61,.2);color:#8A5300;padding:1px 5px;border-radius:5px;margin-left:4px}
+.upv{flex:1;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.upv .old{color:var(--ink-3);text-decoration:line-through;text-decoration-thickness:1px}
+.upv b{color:var(--navy);font-weight:700}
 
 /* eval cards */
 .egrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:11px}
@@ -443,7 +458,8 @@ function drawT1(){
     if(q1&&norm(m.name).indexOf(norm(q1))<0&&norm(m.ceo).indexOf(norm(q1))<0)return false;
     return true;});
   let h="<thead><tr><th>업체ID</th><th>기업명</th><th>대표자</th><th>지역</th><th>확인담당</th><th class='ctr'>진행상황</th>"+
-    "<th>조사 이력</th><th class='ctr'>CGMP</th><th>3T 가마</th><th class='ctr'>갱신</th><th>기업개요</th></tr></thead><tbody>";
+    "<th>조사 이력</th><th class='ctr'>CGMP</th><th>3T 가마</th><th class='ctr'>갱신</th><th>기업개요</th>"+
+    EXTRACOLS.map(function(c){return "<th>"+esc(c.label)+"</th>"}).join("")+"</tr></thead><tbody>";
   rows.forEach(function(m){
     const pg={"완료":"p-ok","진행중":"p-info","확인필요":"p-warn","답변대기중":"p-gray"}[m.prog]||"p-gray";
     const rec=m.hist.filter(function(x){return x.d>=iso(ago(6))}).length;
@@ -454,7 +470,8 @@ function drawT1(){
       "<td class='ctr'>"+(m.cgmp?(m.cgmp.indexOf("가능")>=0?"<span class='pill p-ok'>보유</span>":"<span class='pill p-gray'>미보유</span>"):dim())+"</td>"+
       "<td>"+(m.g3?esc(m.g3):dim())+"</td>"+
       "<td class='ctr'>"+(rec?"<span class='pill p-info'>"+rec+"건</span>":dim("—"))+"</td>"+
-      "<td class='wide'>"+(m.desc?esc(m.desc):dim())+"</td></tr>";
+      "<td class='wide'>"+(m.desc?esc(m.desc):dim())+"</td>"+
+      EXTRACOLS.map(function(c){return "<td>"+(m[c.key]?esc(m[c.key]):dim())+"</td>"}).join("")+"</tr>";
   });
   h+="</tbody>";
   const t=document.getElementById("t1"); t.innerHTML=h;
@@ -486,6 +503,9 @@ function openMaster(id){
    ["설립일",m.est],["홈페이지",m.site],["CGMP",m.cgmp],["3T 가마",m.g3],["보유 가마",m.gama],["총 CAPA",m.capa]]
   .forEach(function(r){
     h+="<div class='kv'><dt>"+r[0]+"</dt><dd>"+(r[1]?esc(r[1]):dim())+"</dd></div>";
+  });
+  EXTRACOLS.forEach(function(c){
+    h+="<div class='kv'><dt>"+esc(c.label)+"</dt><dd>"+(m[c.key]?esc(m[c.key]):dim())+"</dd></div>";
   });
   h+="</div><label>조사 이력</label><div>"+(m.surveys.length?m.surveys.map(function(s){
       return "<span class='fl'>"+esc(s)+"</span>"}).join(""):dim("조사 이력 없음"))+"</div>";
@@ -543,6 +563,10 @@ function matchRow(raw){
 const SYNC=[["","마스터 반영 안 함"],["g3","3T 가마"],["gama","보유 가마"],["cgmp","CGMP"],
             ["capa","총 CAPA"],["ceo","대표자명"],["addr","주소"],["desc","기업개요"]];
 const SYNCLB={g3:"3T 가마",gama:"보유 가마",cgmp:"CGMP",capa:"총 CAPA",ceo:"대표자명",addr:"주소",desc:"기업개요"};
+/* 조사에서 마스터에 없던 항목을 업로드하면 동적으로 추가되는 마스터 열 */
+const EXTRACOLS=[];
+function ensureExtraCol(label){ let e=EXTRACOLS.filter(function(x){return x.label===label})[0];
+  if(!e){e={key:"ex"+(EXTRACOLS.length+1),label:label}; EXTRACOLS.push(e);} return e; }
 
 function mkItem(m,ans,done){
   return {name:m.name,ceo:m.ceo,addr:m.addr,region:m.region,st:"auto",mid:m.id,
@@ -574,28 +598,31 @@ const SURVEYS=[
 ];
 let openSurvey=null;
 
-function itemState(it){ if(it.done)return "done";
-  const k=Object.keys(it.ans||{}).filter(function(x){return String(it.ans[x]||"").trim()});
-  return k.length?"prog":"wait"; }
-const IST={done:["완료","p-ok"],prog:["진행중","p-info"],wait:["조사대기","p-gray"]};
+function isFilledAll(it,cols){ cols=cols||[]; if(!cols.length)return false;
+  return cols.every(function(c){return String((it.ans||{})[c.key]||"").trim()!==""}); }
+function itemState(it,cols){ if(it.na)return "na";
+  return isFilledAll(it,cols)?"done":"prog"; }
+const IST={done:["완료","p-ok"],prog:["진행중","p-info"],na:["N/A","p-gray"]};
+function surveyDone100(s){ if(!s.items.length)return false;
+  return s.items.every(function(it){const st=itemState(it,s.cols);return st==="done"||st==="na";}); }
 
 function drawT2(){
   let h="<thead><tr><th style='width:32px'></th><th>조사일</th><th>생성자</th><th class='ctr'>상태</th><th>조사 목적</th>"+
-    "<th class='ctr'>대상</th><th class='ctr'>완료</th><th class='ctr'>진행중</th><th class='ctr'>조사대기</th>"+
+    "<th class='ctr'>대상</th><th class='ctr'>완료</th><th class='ctr'>진행중</th><th class='ctr'>N/A</th>"+
     "<th style='min-width:150px'>진행율</th></tr></thead><tbody>";
   SURVEYS.forEach(function(s){
     const t=s.items.length;
-    const d=s.items.filter(function(i){return itemState(i)==="done"}).length;
-    const p=s.items.filter(function(i){return itemState(i)==="prog"}).length;
-    const w=s.items.filter(function(i){return itemState(i)==="wait"}).length;
-    const pct=t?Math.round(d/t*100):0;
-    const st=d===t&&t?["완료","p-ok"]:(d||p)?["진행중","p-info"]:["대기","p-gray"];
+    const d=s.items.filter(function(i){return itemState(i,s.cols)==="done"}).length;
+    const p=s.items.filter(function(i){return itemState(i,s.cols)==="prog"}).length;
+    const na=s.items.filter(function(i){return itemState(i,s.cols)==="na"}).length;
+    const pct=t?Math.round((d+na)/t*100):0;
+    const st=(t&&d+na===t)?["완료","p-ok"]:(d||p)?["진행중","p-info"]:["진행중","p-gray"];
     const on=openSurvey===s.id;
     h+="<tr class='clickrow"+(on?" open":"")+"' data-s='"+s.id+"'><td class='ctr'><span class='chev'></span></td>"+
       "<td>"+s.date+"</td><td>"+esc(s.creator)+"</td>"+
       "<td class='ctr'><span class='pill "+st[1]+"'>"+st[0]+"</span></td>"+
       "<td><span class='nm'>"+esc(s.purpose)+"</span> <span class='dim'>"+s.id+"</span></td>"+
-      "<td class='ctr'>"+t+"</td><td class='ctr'><b>"+d+"</b></td><td class='ctr'>"+p+"</td><td class='ctr'>"+w+"</td>"+
+      "<td class='ctr'>"+t+"</td><td class='ctr'><b>"+d+"</b></td><td class='ctr'>"+p+"</td><td class='ctr'>"+na+"</td>"+
       "<td><div class='prog'><span class='track'><span class='fillb' style='width:"+pct+"%'></span></span><b>"+pct+"%</b></div></td></tr>";
     if(on) h+="<tr><td class='detail-td' colspan='10'>"+panel(s)+"</td></tr>";
   });
@@ -616,6 +643,7 @@ function dupPill(it){
   return "<span class='pill p-info'>신규</span>";
 }
 function panel(s){
+  const done100=surveyDone100(s);
   const chk=s.items.filter(function(i){return i.st==="check"}).length;
   const dh=s.items.filter(function(i){return i.dup==="have"}).length;
   const ds=s.items.filter(function(i){return i.dup==="stale"}).length;
@@ -626,7 +654,9 @@ function panel(s){
     "<button data-th='3' aria-pressed='"+(THRESH===3)+"'>3개 모두</button></span>"+
     "<span class='spacer'></span>"+
     "<button class='btn' data-addcol='"+s.id+"'>＋ 조사항목 추가</button>"+
-    "<button class='btn' data-tovisit='"+s.id+"'>선택 업체 방문예정처로 이관</button></div>";
+    "<button class='btn' data-tovisit='"+s.id+"'>선택 업체 방문예정처로 이관</button>"+
+    "<button class='btn"+(done100?" pri":"")+"' data-upload='"+s.id+"'"+(done100?"":" disabled")+
+      " title='완료율 100%일 때 마스터에 반영됩니다'>⬆ 마스터 업로드</button></div>";
   if(dh+ds+dn)h+="<div class='reuse'>중복 점검 · 기보유 <b>"+dh+"</b> · 재확인 <b>"+ds+"</b> · 신규 <b>"+dn+
     "</b><span class='dim'> — 기보유 행은 흐리게 표시되며 답변이 미리 채워져 있습니다</span></div>";
   h+="<div class='wrap'><table class='nw'><thead><tr>"+
@@ -639,8 +669,8 @@ function panel(s){
     const m=it.mid?byId(it.mid):null;
     const stp=it.st==="auto"?"<span class='pill p-ok'>연결됨</span>":
               it.st==="check"?"<span class='pill p-warn'>확인 필요</span>":"<span class='pill p-info'>신규</span>";
-    const is=itemState(it);
-    h+="<tr"+(it.skip?" style='opacity:.5'":"")+"><td class='ctr'><input type='checkbox' data-sel='"+i+"'"+(it.mid?"":" disabled")+"></td>"+
+    const is=itemState(it,s.cols);
+    h+="<tr"+(it.skip||it.na?" style='opacity:.55'":"")+"><td class='ctr'><input type='checkbox' data-sel='"+i+"'"+(it.mid?"":" disabled")+"></td>"+
       "<td class='dim'>"+(m?m.id:"—")+"</td><td><span class='nm'>"+esc(it.name)+"</span></td>"+
       "<td class='ctr'>"+stp+"</td>"+
       "<td class='ctr'>"+dupPill(it)+"</td>"+
@@ -660,13 +690,13 @@ function panel(s){
     h+="<td class='ctr'><span class='pill "+IST[is][1]+"'>"+IST[is][0]+"</span></td>"+
       "<td class='ctr'>"+(it.st==="check"?"<button class='btn sm' data-fix='"+i+"'>후보 선택</button>":
         it.st==="new"?"<button class='btn sm' data-add='"+i+"'>마스터 등록</button>":
-        it.done?"<button class='btn sm' data-undo='"+i+"'>완료 해제</button>":
-        "<button class='btn sm pri' data-done='"+i+"'>완료 처리</button>")+"</td></tr>";
+        it.na?"<button class='btn sm' data-na='"+i+"'>N/A 해제</button>":
+        "<button class='btn sm' data-na='"+i+"'>해당없음</button>")+"</td></tr>";
   });
   h+="</tbody></table></div>";
   if(chk)h+="<div class='warnbox'>확인 필요 "+chk+"건은 일치 항목이 기준에 못 미칩니다. 후보를 직접 선택하거나 신규로 등록하세요.</div>";
-  h+="<div class='tip'>답변을 하나라도 입력하면 <b>진행중</b>, 아무것도 없으면 <b>조사대기</b>로 자동 갱신됩니다. "+
-     "<b>완료 처리</b>를 누르면 ↺ 표시된 항목이 마스터에 반영되고 갱신 이력이 남습니다.</div></div>";
+  h+="<div class='tip'>모든 조사항목을 입력하면 자동으로 <b>완료</b>됩니다. 해당 조사가 적용되지 않는 업체는 <b>해당없음(N/A)</b>으로 표시하세요. "+
+     "완료율이 <b>100%</b>가 되면 <b>⬆ 마스터 업로드</b> 버튼이 활성화되고, 누르면 ↺ 표시 값이 마스터에 덮어써지며(없던 항목은 열 추가) 갱신 이력이 남습니다.</div></div>";
   return h;
 }
 
@@ -677,16 +707,18 @@ function bindPanel(){
     THRESH=+b.dataset.th; rescore(s); drawT2(); toast("매칭 기준 변경 — 일치 항목 "+THRESH+"개 이상")}});
   w.querySelectorAll("[data-a]").forEach(function(el){
     const h=function(){ const it=s.items[+el.dataset.a];
-      it.ans=it.ans||{}; it.ans[el.dataset.k]=el.value; refreshStates(s); };
+      it.ans=it.ans||{}; it.ans[el.dataset.k]=el.value;
+      it.done=isFilledAll(it,s.cols)&&!it.na;   /* 모두 입력 → 자동 완료 상태 */
+      refreshStates(s); };
     el.addEventListener("change",h);
     el.addEventListener("click",function(e){e.stopPropagation()});
   });
   w.querySelectorAll("[data-sel]").forEach(function(c){c.addEventListener("click",function(e){e.stopPropagation()})});
   w.querySelectorAll("[data-fix]").forEach(function(b){b.onclick=function(e){e.stopPropagation();openCand(s,+b.dataset.fix)}});
   w.querySelectorAll("[data-add]").forEach(function(b){b.onclick=function(e){e.stopPropagation();addMaster(s,+b.dataset.add)}});
-  w.querySelectorAll("[data-done]").forEach(function(b){b.onclick=function(e){e.stopPropagation();doneItem(s,+b.dataset.done)}});
-  w.querySelectorAll("[data-undo]").forEach(function(b){b.onclick=function(e){e.stopPropagation();
-    s.items[+b.dataset.undo].done=false; drawT2()}});
+  w.querySelectorAll("[data-na]").forEach(function(b){b.onclick=function(e){e.stopPropagation();
+    const it=s.items[+b.dataset.na]; it.na=!it.na; if(it.na)it.done=false; drawT2()}});
+  const up=w.querySelector("[data-upload]"); if(up)up.onclick=function(e){e.stopPropagation();openUploadModal(s)};
   const ac=w.querySelector("[data-addcol]"); if(ac)ac.onclick=function(e){e.stopPropagation();openAddCol(s)};
   const tv=w.querySelector("[data-tovisit]"); if(tv)tv.onclick=function(e){e.stopPropagation();
     const sel=[]; w.querySelectorAll("[data-sel]:checked").forEach(function(c){sel.push(+c.dataset.sel)});
@@ -700,48 +732,86 @@ function refreshStates(s){
   s.items.forEach(function(it,i){
     const tr=rows[i]; if(!tr)return;
     const tds=tr.querySelectorAll("td");
-    const is=itemState(it);
+    const is=itemState(it,s.cols);
     tds[tds.length-2].innerHTML="<span class='pill "+IST[is][1]+"'>"+IST[is][0]+"</span>";
   });
   const t=s.items.length;
-  const d=s.items.filter(function(i){return itemState(i)==="done"}).length;
-  const p=s.items.filter(function(i){return itemState(i)==="prog"}).length;
-  const wt=s.items.filter(function(i){return itemState(i)==="wait"}).length;
+  const d=s.items.filter(function(i){return itemState(i,s.cols)==="done"}).length;
+  const p=s.items.filter(function(i){return itemState(i,s.cols)==="prog"}).length;
+  const na=s.items.filter(function(i){return itemState(i,s.cols)==="na"}).length;
   const hd=document.querySelector("#t2 tr[data-s='"+s.id+"']");
   if(hd){const c=hd.querySelectorAll("td");
-    c[5].textContent=t;c[6].innerHTML="<b>"+d+"</b>";c[7].textContent=p;c[8].textContent=wt;
-    const pct=t?Math.round(d/t*100):0;
+    c[5].textContent=t;c[6].innerHTML="<b>"+d+"</b>";c[7].textContent=p;c[8].textContent=na;
+    const pct=t?Math.round((d+na)/t*100):0;
     c[9].innerHTML="<div class='prog'><span class='track'><span class='fillb' style='width:"+pct+"%'></span></span><b>"+pct+"%</b></div>";
   }
+  const up=document.querySelector("#t2 .panel [data-upload]");
+  if(up){const on=(t>0&&d+na===t); up.disabled=!on; up.classList.toggle("pri",on);}
 }
 function rescore(s){ s.items.forEach(function(it){ if(it._raw){
   const r=matchRow(it._raw); it.st=r.st; it.mid=r.pick?r.pick.m.id:null;
   it.ev=r.pick?r.pick.ev:[]; it._c=r.cands; }}); }
 
-function doneItem(s,i){
-  const it=s.items[i]; if(!it.mid){toast("마스터에 연결된 업체만 완료 처리할 수 있습니다");return}
-  const m=byId(it.mid); const changed=[];
-  s.cols.forEach(function(c){
-    const v=String((it.ans||{})[c.key]||"").trim(); if(!v)return;
-    if(c.dictK){                                  // 역량 항목 사전으로 적재
-      const cur=getVal(m.id,c.dictK);
-      if(!cur||cur.v!==v||!isFresh(cur)){
-        pushHist(m,DMAP[c.dictK].n,cur?cur.v:"",v,s.id+" "+s.purpose);
-        setVal(m.id,c.dictK,v,"조사 "+s.id,"B");
-        changed.push(DMAP[c.dictK].n);
-      }
-    }
-    if(!c.sync)return;
-    const before=m[c.sync]||"";
-    if(String(before)!==v){ pushHist(m,SYNCLB[c.sync]||c.label,before,v,s.id+" "+s.purpose);
-      m[c.sync]=v; changed.push(SYNCLB[c.sync]||c.label); }
+/* 완료율 100% → 마스터 업로드 창 (미리보기 후 반영) */
+function extraColPeek(label){const e=EXTRACOLS.filter(function(x){return x.label===label})[0];return e?e.key:null;}
+function openUploadModal(s){
+  if(!surveyDone100(s)){toast("완료율 100%가 되면 마스터 업로드가 가능합니다");return;}
+  const preview=[], newCols=[];
+  s.items.forEach(function(it){
+    if(itemState(it,s.cols)!=="done")return;
+    const m=it.mid?byId(it.mid):null; if(!m)return;
+    const chg=[];
+    s.cols.forEach(function(c){
+      const v=String((it.ans||{})[c.key]||"").trim(); if(!v)return;
+      if(c.sync){ const before=m[c.sync]||""; if(String(before)!==v)chg.push({label:SYNCLB[c.sync]||c.label,before:before,after:v,isNew:false}); }
+      else { const ek=extraColPeek(c.label); const before=ek?(m[ek]||""):"";
+        if(newCols.indexOf(c.label)<0)newCols.push(c.label);
+        if(String(before)!==v)chg.push({label:c.label,before:before,after:v,isNew:true}); }
+    });
+    if(m.prog!=="완료")chg.push({label:"진행상황",before:m.prog,after:"완료",isNew:false});
+    if(chg.length)preview.push({name:m.name,id:m.id,chg:chg});
   });
-  if(m.prog!=="완료"){ pushHist(m,"진행상황",m.prog,"완료",s.id+" "+s.purpose); m.prog="완료"; changed.push("진행상황"); }
-  if(m.surveys.indexOf(s.purpose)<0)m.surveys.push(s.purpose);
-  it.done=true;
-  if(s.dictCodes&&s.dictCodes.length){const d=dupOf(m.id,s.dictCodes);it.dup=d.st;it.skip=(d.st==="have")}
-  drawT2(); drawT1(); drawC1();
-  toast(esc(m.name)+" 완료 처리 · 갱신 "+(changed.length?esc(changed.join(", ")):"변경 없음"));
+  let h="<div class='sh-h'><div class='k'>"+s.id+" · 마스터 업로드</div><h3>"+esc(s.purpose)+"</h3>"+
+    "<p>완료된 <b>"+preview.length+"개사</b>의 조사 결과를 업체마스터에 반영합니다. 기존 값은 덮어쓰며 갱신 이력이 남습니다.</p></div><div class='sh-b'>";
+  if(newCols.length)h+="<div class='warnbox'>마스터에 없던 항목 <b>"+esc(newCols.join(", "))+"</b> 은(는) 새 열로 추가됩니다.</div>";
+  if(!preview.length)h+="<div class='tip'>이미 최신 상태입니다. 반영할 변경이 없습니다.</div>";
+  preview.forEach(function(pv){
+    h+="<div class='upcard'><div class='uphd'><b>"+esc(pv.name)+"</b><span class='dim'>"+pv.id+"</span></div>";
+    pv.chg.forEach(function(g){
+      h+="<div class='uprow'><span class='upf'>"+esc(g.label)+(g.isNew?" <em>신규열</em>":"")+"</span>"+
+        "<span class='upv'>"+(g.before?"<span class='old'>"+esc(g.before)+"</span>":"")+"<b>"+esc(g.after)+"</b></span></div>";
+    });
+    h+="</div>";
+  });
+  h+="</div><div class='sh-f'><button class='btn' id='upx'>취소</button>"+
+     "<button class='btn pri' id='upok'"+(preview.length?"":" disabled")+">마스터에 반영</button></div>";
+  document.getElementById("sheet").innerHTML=h;
+  document.getElementById("scrim").classList.add("on");
+  document.getElementById("upx").onclick=close;
+  document.getElementById("upok").onclick=function(){uploadToMaster(s);close();};
+}
+function uploadToMaster(s){
+  if(!surveyDone100(s)){toast("완료율 100%가 되면 마스터 업로드가 가능합니다");return;}
+  let nUp=0; const addedCols=[];
+  s.items.forEach(function(it){
+    if(itemState(it,s.cols)!=="done")return;
+    const m=it.mid?byId(it.mid):null; if(!m)return;
+    let touched=false;
+    s.cols.forEach(function(c){
+      const v=String((it.ans||{})[c.key]||"").trim(); if(!v)return;
+      let field,label;
+      if(c.sync){ field=c.sync; label=SYNCLB[c.sync]||c.label; }
+      else { const e=ensureExtraCol(c.label); field=e.key; label=c.label;
+             if(addedCols.indexOf(c.label)<0)addedCols.push(c.label); }
+      const before=m[field]||"";
+      if(String(before)!==v){ pushHist(m,label,before,v,s.id+" "+s.purpose); m[field]=v; touched=true; }
+    });
+    if(m.prog!=="완료"){ pushHist(m,"진행상황",m.prog,"완료",s.id+" "+s.purpose); m.prog="완료"; touched=true; }
+    if(m.surveys.indexOf(s.purpose)<0)m.surveys.push(s.purpose);
+    if(touched)nUp++;
+  });
+  drawT1(); drawC1(); drawT2();
+  toast(esc(s.purpose)+" · 마스터 반영 완료 — "+nUp+"개사"+(addedCols.length?" · 신규 열 "+esc(addedCols.join(", ")):""));
 }
 
 /* ============ 새 조사 업로드 ============ */
@@ -961,15 +1031,15 @@ const VCOLS=[
  {g:"fix",k:"trip",t:"방문 예정시간 · 이동",w:184},
  {g:"fix",k:"dd",t:"D-day",w:62,a:"ctr"},
  {g:"fix",k:"memo",t:"최근 비고",w:230,a:"wide"},
- {g:"co",k:"biz",t:"사업자번호",w:112},
  {g:"co",k:"kind",t:"구분",w:96,a:"ctr"},
  {g:"co",k:"addr",t:"주소지",w:250,a:"wide"},
+ {g:"co",k:"mgr",t:"담당자",w:96},
+ {g:"co",k:"pos",t:"직위",w:94},
+ {g:"co",k:"tel",t:"연락처",w:124},
+ {g:"co",k:"mail",t:"메일",w:208},
+ {g:"ct",k:"biz",t:"사업자번호",w:112},
  {g:"ct",k:"site",t:"홈페이지",w:158},
  {g:"ct",k:"link",t:"소개자료",w:150},
- {g:"ct",k:"mgr",t:"담당자",w:96},
- {g:"ct",k:"pos",t:"직위",w:94},
- {g:"ct",k:"tel",t:"연락처",w:124},
- {g:"ct",k:"mail",t:"메일",w:208},
  {g:"sch",k:"vend",t:"업체 방문가능일",w:158},
  {g:"sch",k:"coop",t:"협생 가능일",w:170},
  {g:"sch",k:"qa",t:"품보 가능일",w:170},
@@ -980,13 +1050,13 @@ const VCOLS=[
  {g:"vis",k:"vdone",t:"방문완료일",w:100,a:"ctr"},
  {g:"vis",k:"att",t:"참석자",w:160},
  {g:"vis",k:"res",t:"방문 결과",w:310,a:"wide"},
- {g:"vis",k:"cq",t:"Capa 요청일",w:106,a:"ctr"},
- {g:"vis",k:"cd",t:"회신 기한",w:106,a:"ctr"},
+ {g:"vis",k:"cq",t:"Capa 요청일",w:132,a:"ctr"},
+ {g:"vis",k:"elapsed",t:"경과일",w:120,a:"ctr"},
  {g:"log",k:"ch",t:"상태 변경일",w:100,a:"ctr"},
  {g:"log",k:"by",t:"최종 수정자",w:106},
  {g:"log",k:"note",t:"변경 메모",w:230,a:"wide"}
 ];
-const VGROUPS=[{k:"fix",t:"고정",lock:true},{k:"co",t:"① 업체정보"},{k:"ct",t:"② 연락 · 자료",off:true},
+const VGROUPS=[{k:"fix",t:"고정",lock:true},{k:"co",t:"① 업체정보"},{k:"ct",t:"② 기타자료",off:true},
  {k:"sch",t:"③ 일정협의"},{k:"sel",t:"④ 선정"},{k:"vis",t:"⑤ 방문 결과"},{k:"log",t:"⑥ 이력"}];
 const VHIDE={}; VGROUPS.forEach(function(g){if(g.off)VHIDE[g.k]=true});
 /* 열그룹별 미세 색상 (같은 톤, 그룹헤더 g / 열헤더 c) */
@@ -1015,7 +1085,7 @@ const VISITS=[];
       fix:(r["확정 방문일"]||"").slice(0,10),time:time,
       picker:r["수배주체"]?r["수배주체"]+"팀":"",reason:r["수배사유"],
       vdone:st==="done"?(r["확정 방문일"]||"").slice(0,10):"",
-      att:r["방문자"],res:r["방문결과/후속조치"],cq:"",cd:"",
+      att:r["방문자"],res:r["방문결과/후속조치"],cq:"",
       memo:(r["의뢰예상제품"]||"")+(r["방문결과/후속조치"]?" · "+String(r["방문결과/후속조치"]).slice(0,26):""),
       ch:"",by:"협/생팀",note:"기존 방문일정관리 이관",ev:r["상태"]==="방문완료"});
   });
@@ -1056,7 +1126,14 @@ function vcell(v,c,i){
     case "mail":return v.mail?"<a href='#'>"+esc(String(v.mail).split(";")[0])+"</a>":dim();
     case "site":return v.site?"<a href='#'>"+esc(String(v.site).replace(/^https?:\/\//,"").slice(0,26))+"</a>":dim();
     case "link":return v.link?"<a href='#'>"+esc(v.link)+"</a>":dim("미수령");
-    case "cd":return v.cd?"<span class='over'>"+esc(v.cd)+"</span>":dim();
+    case "cq":return "<input type='date' class='dtin' data-vf='cq' data-i='"+i+"' value=\""+esc(v.cq)+"\">";
+    case "elapsed":{
+      if(!v.cq)return dim("—");
+      const d0=new Date(v.cq+"T00:00:00"); if(isNaN(d0))return dim("—");
+      const days=Math.floor((TODAY-d0)/86400000);
+      if(days<0)return "<span class='elap'>예정</span>";
+      const late=days>=7;
+      return "<span class='elap"+(late?" late":"")+"'>"+days+"일 경과"+(late?"<b class='bell' title='"+esc(v.mgr||"방문담당자")+" 알림'>🔔</b>":"")+"</span>";}
     case "reason":return v.reason?esc(v.reason):dim();
     case "ch":return v.ch?esc(v.ch):dim();
     default:{const x=v[c.k];return (x===undefined||x===null||x==="")?dim():esc(x);}
@@ -1104,14 +1181,22 @@ function drawT3(){
   document.getElementById("b3").textContent=VISITS.length;
   document.querySelectorAll("[data-vt]").forEach(function(e){e.addEventListener("input",function(){
     VISITS[+e.dataset.vt].time=e.value; paintTrips();})});
-  /* 가능일 입력 → 값 갱신 + 부서공통·최종공통 자동 재계산 */
-  document.querySelectorAll("#t3 .dayin").forEach(function(inp){
-    inp.addEventListener("input",function(){
-      const i=+inp.dataset.i, f=inp.dataset.vf; VISITS[i][f]=inp.value;
-      ["both","final"].forEach(function(k){
-        const td=document.querySelector("#t3 td[data-r='"+i+"'][data-k='"+k+"']");
-        if(td){const col=VCOLS.filter(function(c){return c.k===k})[0]; td.innerHTML=vcell(VISITS[i],col,i);}
-      });
+  /* 방문예정처 입력 셀 (가능일 / Capa 요청일) 값 갱신 */
+  document.querySelectorAll("#t3 [data-vf]").forEach(function(el){
+    el.addEventListener("input",function(){
+      const i=+el.dataset.i, f=el.dataset.vf; VISITS[i][f]=el.value;
+      if(f==="coop"||f==="qa"||f==="vend"){   /* 부서공통·최종공통 자동 재계산 */
+        ["both","final"].forEach(function(k){
+          const td=document.querySelector("#t3 td[data-r='"+i+"'][data-k='"+k+"']");
+          if(td){const col=VCOLS.filter(function(c){return c.k===k})[0]; td.innerHTML=vcell(VISITS[i],col,i);}
+        });
+      }else if(f==="cq"){   /* 경과일 재계산 + 7일 지연 시 방문담당자 알림 */
+        const td=document.querySelector("#t3 td[data-r='"+i+"'][data-k='elapsed']");
+        if(td){const col=VCOLS.filter(function(c){return c.k==="elapsed"})[0]; td.innerHTML=vcell(VISITS[i],col,i);}
+        const v=VISITS[i];
+        if(v.cq){const d0=new Date(v.cq+"T00:00:00"); const days=Math.floor((TODAY-d0)/86400000);
+          if(days>=7)toast("🔔 "+esc(v.mgr||"방문담당자")+" — "+esc(v.co)+" Capa 회신 "+days+"일 경과 알림");}
+      }
     });
   });
   /* 열 크기 조정 */
@@ -1149,6 +1234,21 @@ function drawC3(){
     c.appendChild(b);
   });
 }
+/* 열 너비를 내용에 맞게 자동 조정 (이후에도 드래그로 조절 가능) */
+function autoFitT3(){
+  const tbl=document.getElementById("t3"); if(!tbl||!T3COLS.length)return;
+  const prev=tbl.style.tableLayout; tbl.style.tableLayout="auto";
+  const heads=tbl.querySelectorAll("thead tr.c th");
+  const rows=tbl.querySelectorAll("tbody tr");
+  heads.forEach(function(th){th.style.width="auto";th.style.minWidth="0";});
+  rows.forEach(function(tr){Array.prototype.forEach.call(tr.children,function(td){td.style.width="auto";td.style.minWidth="0";});});
+  T3COLS.forEach(function(c,i){
+    let w=heads[i]?heads[i].getBoundingClientRect().width:c.w;
+    rows.forEach(function(tr){const td=tr.children[i]; if(td)w=Math.max(w,td.getBoundingClientRect().width);});
+    c.w=Math.min(300,Math.max(44,Math.ceil(w)+6));
+  });
+  tbl.style.tableLayout=prev; drawT3();
+}
 (function initG3(){
   const g=document.getElementById("g3");
   VGROUPS.filter(function(x){return !x.lock}).forEach(function(x){
@@ -1159,6 +1259,10 @@ function drawC3(){
       b.setAttribute("aria-pressed",VHIDE[x.k]?"false":"true"); drawT3();};
     g.appendChild(b);
   });
+  const af=document.createElement("button");
+  af.className="gt"; af.style.marginLeft="6px"; af.innerHTML="↔ 열너비 자동맞춤";
+  af.onclick=function(){autoFitT3()};
+  g.appendChild(af);
   const lg=document.getElementById("lg3");
   Object.keys(VST).forEach(function(k){
     const s=document.createElement("span");
@@ -1180,7 +1284,7 @@ function toVisit(s,idxs){
       mgr:m.ceo||"",pos:m.ceo?"대표":"",tel:"",mail:"",
       vend:"",coop:"",qa:"",fix:"",time:"",
       picker:"협력생산팀",reason:s.purpose+" — "+s.id+(extra?" ("+extra+")":""),
-      vdone:"",att:"",res:"",cq:"",cd:"",
+      vdone:"",att:"",res:"",cq:"",
       memo:"조사에서 이관 · 일정 협의 필요",
       ch:iso(TODAY),by:"협력생산팀",note:"조사 "+s.id+"에서 이관",ev:false});
     n++;
@@ -1253,10 +1357,12 @@ function drawC4(){
 }
 
 /* ============ 탭 ============ */
+let t3Fitted=false;
 function switchTab(p){
   document.querySelectorAll(".tab").forEach(function(t){t.classList.toggle("on",t.dataset.p===p)});
   document.querySelectorAll(".page").forEach(function(x){x.classList.toggle("on",x.id===p)});
   window.scrollTo(0,0);
+  if(p==="p3"&&!t3Fitted){t3Fitted=true; requestAnimationFrame(autoFitT3);}   /* 처음 열 때 내용에 맞춰 자동 조정 */
 }
 document.querySelectorAll(".tab").forEach(function(t){t.onclick=function(){switchTab(t.dataset.p)}});
 
