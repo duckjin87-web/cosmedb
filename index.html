@@ -1,0 +1,1383 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CosmeDB — 마스터 · 조사 · 방문예정처 · 등록평가</title>
+<style>
+:root{
+  --navy:#3b4f8a; --navy-deep:#2B3A69; --navy-l:#5A6EA8;
+  --navy-50:#EEF1F8; --navy-100:#DDE3F1;
+  --canvas:#F4F5F8; --surface:#FFF;
+  --ink:#1C2333; --ink-2:#616B80; --ink-3:#98A0B2;
+  --line:#E6E9F0; --line-2:#D6DBE7;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--canvas);color:var(--ink);
+ font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Apple SD Gothic Neo","Pretendard","Noto Sans KR",system-ui,sans-serif;
+ font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased;letter-spacing:-.01em}
+
+.appbar{background:var(--navy);color:#fff;padding:11px 18px 0;position:sticky;top:0;z-index:70}
+.brand{display:flex;align-items:center;gap:9px}
+.logo{width:19px;height:19px;border-radius:4px;background:#fff;position:relative;flex:0 0 auto}
+.logo::before{content:"";position:absolute;inset:4px;border-radius:1.5px;background:var(--navy)}
+.brand h1{font-size:15px;font-weight:700;letter-spacing:-.02em}
+.brand .sub{font-size:11px;opacity:.68;margin-left:auto;font-weight:500}
+.tabs{display:flex;gap:2px;margin-top:11px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;border:none;background:none;color:rgba(255,255,255,.62);cursor:pointer;font:inherit;
+ font-size:12.5px;font-weight:600;padding:8px 13px 9px;border-radius:8px 8px 0 0;white-space:nowrap;transition:.16s}
+.tab:hover{color:#fff;background:rgba(255,255,255,.09)}
+.tab.on{background:var(--canvas);color:var(--navy)}
+.tab .bdg{display:inline-block;margin-left:5px;font-size:9.5px;font-weight:800;background:rgba(255,255,255,.22);
+ padding:1px 5px;border-radius:4px;vertical-align:1px}
+.tab.on .bdg{background:var(--navy-100);color:var(--navy)}
+
+.page{display:none}
+.page.on{display:block}
+.tool{background:var(--surface);border-bottom:.5px solid var(--line-2);padding:12px 18px}
+.trow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.title{font-size:17px;font-weight:700;letter-spacing:-.022em}
+.note{font-size:11.5px;color:var(--ink-3)}
+.spacer{flex:1}
+.btn{border:.5px solid var(--line-2);background:#fff;color:var(--ink-2);cursor:pointer;font:inherit;
+ font-size:12px;font-weight:600;padding:6px 11px;border-radius:8px;transition:.16s;white-space:nowrap}
+.btn:hover{border-color:var(--navy-l);color:var(--navy)}
+.btn.pri{background:var(--navy);border-color:var(--navy);color:#fff}
+.btn.pri:hover{background:var(--navy-deep)}
+.btn.sm{font-size:11px;padding:3.5px 8px;border-radius:6px}
+.btn:disabled{opacity:.42;cursor:default}
+.srch{border:.5px solid var(--line-2);border-radius:8px;padding:6px 10px;font:inherit;font-size:12.5px;width:186px}
+.srch:focus{outline:none;border-color:var(--navy)}
+.chips{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;padding-top:10px}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;border:none;cursor:pointer;background:var(--navy-50);color:var(--ink-2);font:inherit;
+ font-size:12px;font-weight:600;padding:5px 10px;border-radius:980px;transition:.16s;white-space:nowrap;
+ display:inline-flex;align-items:center;gap:5px}
+.chip:hover{background:var(--navy-100)}
+.chip[aria-pressed="true"]{background:var(--navy);color:#fff}
+.chip i{width:6px;height:6px;border-radius:50%}
+.chip .n{font-variant-numeric:tabular-nums;opacity:.6}
+.gts{display:flex;gap:5px;flex-wrap:wrap;padding-top:9px;align-items:center}
+.gts .lb{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);font-weight:700;margin-right:2px}
+.gt{border:.5px solid var(--line-2);background:#fff;color:var(--ink-2);cursor:pointer;font:inherit;
+ font-size:11px;font-weight:600;padding:3.5px 8px;border-radius:6px;transition:.16s;display:inline-flex;align-items:center;gap:5px}
+.gt:hover{border-color:var(--navy-l)}
+.gt[aria-pressed="false"]{color:var(--ink-3);border-style:dashed;background:transparent}
+.gt s{width:6px;height:6px;border-right:1.4px solid currentColor;border-bottom:1.4px solid currentColor;
+ transform:rotate(45deg) translate(-1px,-1px);transition:.2s}
+.gt[aria-pressed="false"] s{transform:rotate(-45deg) translate(-1px,1px)}
+.body{padding:14px 18px 40px}
+
+.wrap{background:var(--surface);border:.5px solid var(--line-2);border-radius:12px;overflow:auto;
+ box-shadow:0 1px 3px rgba(28,35,51,.06)}
+.wrap.tall{max-height:calc(100vh - 250px)}
+table{border-collapse:separate;border-spacing:0;font-variant-numeric:tabular-nums;width:100%}
+table.nw{white-space:nowrap}
+thead th{position:sticky;top:0;background:var(--navy-50);font-weight:700;z-index:20;height:33px;
+ font-size:11.5px;color:var(--ink-2);padding:0 12px;border-bottom:.5px solid var(--line-2);
+ border-right:.5px solid var(--line);text-align:left}
+thead tr.g th{top:0;height:26px;font-size:10px;letter-spacing:.06em;color:var(--navy);text-align:center;background:var(--navy-100)}
+thead tr.c th{top:26px}
+tbody td{padding:0 12px;height:44px;border-bottom:.5px solid var(--line);border-right:.5px solid var(--line);font-size:12.5px}
+tbody tr:last-child td{border-bottom:none}
+td.ctr,th.ctr{text-align:center}
+td.wide{max-width:280px;overflow:hidden;text-overflow:ellipsis}
+.dim{color:var(--ink-3)}
+td a{color:var(--navy);text-decoration:none}
+td a:hover{text-decoration:underline}
+.nm{font-weight:700;font-size:13px}
+.pill{display:inline-block;font-size:10.5px;font-weight:700;padding:2.5px 7px;border-radius:980px;white-space:nowrap}
+.p-ok{background:rgba(47,168,106,.15);color:#1C7A4D}
+.p-warn{background:rgba(232,163,61,.2);color:#8A5300}
+.p-bad{background:rgba(214,75,63,.14);color:#B03428}
+.p-info{background:rgba(90,123,196,.16);color:#31509B}
+.p-gray{background:rgba(139,147,166,.18);color:#59617A}
+.fl{display:inline-block;font-size:10px;font-weight:700;background:var(--navy-50);color:var(--navy);
+ padding:2px 6px;border-radius:5px;margin:1px 3px 1px 0}
+.clickrow{cursor:pointer}
+.clickrow:hover td{background:#FAFBFD}
+
+/* survey list */
+.chev{display:inline-block;width:7px;height:7px;border-right:1.6px solid var(--ink-3);border-bottom:1.6px solid var(--ink-3);
+ transform:rotate(-45deg);transition:transform .24s cubic-bezier(.3,0,.2,1);margin-right:2px}
+tr.open .chev{transform:rotate(45deg)}
+.prog{display:flex;align-items:center;gap:8px}
+.prog .track{flex:1;min-width:56px;height:5px;background:var(--line);border-radius:3px;overflow:hidden}
+.prog .fillb{height:100%;background:var(--navy);border-radius:3px;transition:width .3s}
+.prog b{font-size:12px;font-weight:700;min-width:34px;text-align:right}
+.detail-td{padding:0!important;background:#FAFBFD;border-right:none!important}
+.panel{padding:14px 16px 16px;border-top:2px solid var(--navy);animation:rev .26s cubic-bezier(.25,.1,.25,1)}
+@keyframes rev{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}
+.pbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:11px}
+.pbar .lb{font-size:13px;font-weight:700}
+.pbar .rule{font-size:11.5px;color:var(--ink-3)}
+.seg{display:inline-flex;border:.5px solid var(--line-2);border-radius:8px;overflow:hidden;background:#fff}
+.seg button{border:none;background:#fff;color:var(--ink-2);font:inherit;font-size:11.5px;font-weight:600;
+ padding:5px 10px;cursor:pointer;border-right:.5px solid var(--line-2)}
+.seg button:last-child{border-right:none}
+.seg button[aria-pressed="true"]{background:var(--navy);color:#fff}
+.ev{display:flex;gap:3px;flex-wrap:wrap}
+.ev span{font-size:9.5px;font-weight:700;padding:2px 5px;border-radius:5px;background:rgba(47,168,106,.13);color:#1C7A4D}
+.ev span.x{background:rgba(139,147,166,.16);color:var(--ink-3)}
+.ansin{width:100%;border:.5px solid transparent;background:rgba(59,79,138,.06);border-radius:6px;
+ padding:4px 7px;font:inherit;font-size:12px;color:var(--ink);min-width:70px}
+.ansin:hover{background:rgba(59,79,138,.12)}
+.ansin:focus{outline:none;border-color:var(--navy);background:#fff}
+.colhd{background:rgba(59,79,138,.10)!important;color:var(--navy)!important}
+
+/* v3 ledger */
+tr.s-nego td{background:#EFF3FC} tr.s-plan td{background:#FFF7E6}
+tr.s-done td{background:#EEF8F1} tr.s-wait td{background:#FFF0E8}
+tr.s-etc td{background:#F5F1FB}
+tr.s-reg td,tr.s-cxl td{background:#F3F4F7;color:var(--ink-3)}
+tr.s-ng td{background:#FCEFEE;color:#8B4A46}
+.co{display:flex;align-items:center;gap:8px;height:46px}
+.co .bar{width:3px;height:20px;border-radius:2px;flex:0 0 auto}
+.co .cnm{font-size:13px;font-weight:700;letter-spacing:-.015em;overflow:hidden;text-overflow:ellipsis}
+tr.muted .co .cnm{font-weight:500;color:var(--ink-3);text-decoration:line-through;text-decoration-thickness:1px}
+.sel{position:relative;display:inline-block}
+.sel select{appearance:none;-webkit-appearance:none;font:inherit;font-size:11px;font-weight:700;
+ padding:3.5px 20px 3.5px 9px;border-radius:980px;border:none;cursor:pointer}
+.sel::after{content:"";position:absolute;right:8px;top:50%;width:4.5px;height:4.5px;
+ border-right:1.4px solid currentColor;border-bottom:1.4px solid currentColor;
+ transform:translateY(-70%) rotate(45deg);opacity:.55;pointer-events:none}
+.days{font-size:11.5px;line-height:1.35;white-space:normal;color:var(--ink-2)}
+.dept{display:flex;align-items:flex-start;gap:5px}
+.dept b{font-size:9px;font-weight:800;padding:1.5px 4px;border-radius:4px;flex:0 0 auto;margin-top:1px}
+.b-c{background:rgba(59,79,138,.13);color:var(--navy)}
+.b-q{background:rgba(38,138,90,.15);color:#1C7A4D}
+.res{font-weight:700;font-size:11.5px;white-space:normal;line-height:1.3}
+.res.hit{color:var(--navy)} .res.warn{color:#9A6100} .res.bad{color:#C0392B}
+.res small{display:block;font-weight:400;font-size:10px;color:var(--ink-3);margin-top:1px}
+.trip{display:flex;flex-direction:column;justify-content:center;height:46px;line-height:1.3}
+.trip input{font:inherit;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;width:58px;
+ border:.5px solid transparent;background:rgba(59,79,138,.08);border-radius:6px;padding:2px 5px;text-align:center;cursor:pointer}
+.trip input:focus{outline:none;border-color:var(--navy);background:#fff}
+.trip .calc{font-size:10px;color:var(--ink-3);margin-top:2px;white-space:nowrap}
+.trip .calc b{color:#B23A0F;font-weight:700}
+.trip .none{font-size:11px;color:var(--ink-3)}
+.over{color:#C0392B;font-weight:700} .need{color:#9A6100;font-weight:700}
+.sk{position:sticky;z-index:30}
+thead th.sk{z-index:45}
+.edge::after{content:"";position:absolute;top:0;right:0;bottom:0;width:1px;background:var(--line-2);
+ box-shadow:3px 0 6px -3px rgba(28,35,51,.18)}
+
+/* eval cards */
+.egrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:11px}
+.ecard{background:var(--surface);border:.5px solid var(--line-2);border-radius:12px;padding:14px 15px;
+ box-shadow:0 1px 2px rgba(28,35,51,.05);transition:.16s}
+.ecard:hover{border-color:var(--navy-l);transform:translateY(-1px)}
+.ecard .top{display:flex;align-items:flex-start;gap:8px}
+.ecard h3{font-size:15px;font-weight:700;letter-spacing:-.02em;flex:1;min-width:0}
+.ecard .meta{font-size:11.5px;color:var(--ink-3);margin-top:5px;line-height:1.6}
+.ecard .why{font-size:11.5px;margin-top:8px;padding-top:9px;border-top:.5px solid var(--line);color:var(--ink-2)}
+.ecard .act{display:flex;gap:6px;margin-top:11px}
+.ecard .act a{flex:1;text-align:center;text-decoration:none;border:.5px solid var(--navy);background:var(--navy);
+ color:#fff;font-size:11.5px;font-weight:700;padding:6px 0;border-radius:7px}
+.ecard .act a.gh{background:#fff;color:var(--navy)}
+.score{font-size:19px;font-weight:800;letter-spacing:-.03em;color:var(--navy)}
+.score small{font-size:11px;font-weight:600;color:var(--ink-3)}
+
+/* modal */
+.scrim{position:fixed;inset:0;background:rgba(20,26,40,.44);backdrop-filter:blur(3px);z-index:100;
+ display:none;align-items:center;justify-content:center;padding:18px}
+.scrim.on{display:flex}
+.sheet{background:var(--surface);border-radius:16px;width:100%;max-width:580px;max-height:88vh;overflow:auto;
+ box-shadow:0 18px 48px rgba(20,26,40,.28)}
+.sh-h{background:var(--navy);color:#fff;padding:16px 20px;position:sticky;top:0;z-index:5}
+.sh-h .k{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;opacity:.72;font-weight:700}
+.sh-h h3{font-size:17px;font-weight:700;margin-top:2px;letter-spacing:-.02em}
+.sh-h p{font-size:12px;opacity:.78;margin-top:4px}
+.sh-b{padding:16px 20px 4px}
+.sh-b label{display:block;font-size:11px;font-weight:700;color:var(--ink-3);letter-spacing:.05em;
+ text-transform:uppercase;margin:12px 0 5px}
+.sh-b label:first-child{margin-top:0}
+.sh-b input[type=text],.sh-b textarea,.sh-b select{width:100%;border:.5px solid var(--line-2);border-radius:9px;
+ padding:8px 10px;font:inherit;font-size:13px;color:var(--ink);background:#fff}
+.sh-b textarea{min-height:124px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;line-height:1.6;white-space:pre;overflow-x:auto}
+.sh-b input:focus,.sh-b textarea:focus,.sh-b select:focus{outline:none;border-color:var(--navy)}
+.tip{font-size:11.5px;color:var(--ink-3);margin-top:6px;line-height:1.5}
+.colrow{display:grid;grid-template-columns:1fr 92px 116px 26px;gap:6px;margin-bottom:6px;align-items:center}
+.colrow .x{border:none;background:none;color:var(--ink-3);cursor:pointer;font-size:16px;line-height:1}
+.colrow .x:hover{color:#C0392B}
+.map{border:.5px solid var(--line-2);border-radius:10px;overflow:hidden;margin-top:4px}
+.mrow{display:grid;grid-template-columns:1fr 16px 1fr;gap:9px;align-items:center;padding:9px 12px;
+ border-bottom:.5px solid var(--line);font-size:12.5px}
+.mrow:last-child{border-bottom:none}
+.mrow .from{color:var(--ink-3);font-size:11.5px}
+.mrow .ar{color:var(--navy-l);text-align:center;font-size:11px}
+.mrow .to{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mrow .to.empty{color:var(--ink-3);font-weight:400}
+.warnbox{margin-top:12px;background:#FFF7E6;border:.5px solid #F0D9A8;border-radius:9px;padding:10px 12px;
+ font-size:12px;color:#7A5A12;line-height:1.55}
+.sh-f{padding:14px 20px 18px;display:flex;gap:8px;justify-content:flex-end;position:sticky;bottom:0;background:var(--surface)}
+.sh-f .btn{padding:9px 16px;font-size:13px;border-radius:9px}
+.cand{border:.5px solid var(--line-2);border-radius:10px;overflow:hidden;margin-top:4px}
+.crow{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:.5px solid var(--line);font-size:12.5px}
+.crow:last-child{border-bottom:none}
+.crow .g{flex:1;min-width:0}
+.crow .g b{font-size:13px}
+.crow .g div{font-size:11px;color:var(--ink-3);margin-top:2px}
+.kv{display:grid;grid-template-columns:96px 1fr;gap:10px;padding:8px 12px;border-bottom:.5px solid var(--line);font-size:12.5px}
+.kv:last-child{border-bottom:none}
+.kv dt{color:var(--ink-3);font-size:11.5px}
+.hist{border:.5px solid var(--line-2);border-radius:10px;overflow:hidden;margin-top:4px}
+.hrow{display:grid;grid-template-columns:74px 1fr;gap:10px;padding:9px 12px;border-bottom:.5px solid var(--line);font-size:12.5px}
+.hrow:last-child{border-bottom:none}
+.hrow time{color:var(--ink-3);font-size:11.5px}
+.hrow .ch{line-height:1.5}
+.hrow .ch b{font-weight:700}
+.hrow .ch .old{color:var(--ink-3);text-decoration:line-through;margin-right:5px}
+.hrow .ch .src{display:block;font-size:11px;color:var(--navy);margin-top:2px}
+.hrow.old-h{background:#FAFBFD;opacity:.62}
+
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(70px);z-index:120;
+ background:var(--navy);color:#fff;padding:11px 18px;border-radius:11px;font-size:12.5px;font-weight:600;
+ box-shadow:0 8px 24px rgba(20,26,40,.3);opacity:0;transition:.28s cubic-bezier(.25,.1,.25,1);max-width:88vw;text-align:center}
+.toast.on{opacity:1;transform:translateX(-50%)}
+.grpttl{font-size:10px;font-weight:800;color:var(--navy);letter-spacing:.05em;margin:10px 0 5px}
+.grpttl:first-child{margin-top:0}
+.picker{display:flex;flex-wrap:wrap;gap:5px}
+.pk{border:.5px solid var(--line-2);background:#fff;color:var(--ink-2);cursor:pointer;font:inherit;
+ font-size:11.5px;font-weight:600;padding:4.5px 9px;border-radius:8px;transition:.16s;white-space:nowrap}
+.pk:hover{border-color:var(--navy-l);color:var(--navy)}
+.pk[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:#fff}
+.pk .c{opacity:.6;margin-left:4px}
+.pkbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:9px 0 6px}
+.pklist{border:.5px solid var(--line-2);border-radius:10px;max-height:210px;overflow:auto;background:#fff}
+.pkrow{display:grid;grid-template-columns:20px 1fr 42px 62px auto;gap:8px;align-items:center;
+ padding:7px 11px;border-bottom:.5px solid var(--line);font-size:12.5px;cursor:pointer}
+.pkrow:last-child{border-bottom:none}
+.pkrow:hover{background:#FAFBFD}
+.pkrow.have{background:rgba(47,168,106,.05)}
+.pkrow .n{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pkrow .r{font-size:11px}
+.pkrow .dd{font-size:10.5px;white-space:nowrap}
+.sumgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.sc{border:.5px solid var(--line-2);border-radius:10px;padding:10px 11px;text-align:center;font-size:11px;color:var(--ink-2);font-weight:600}
+.sc b{display:block;font-size:21px;font-weight:800;letter-spacing:-.03em;color:var(--ink)}
+.sc i{display:block;font-style:normal;font-size:10px;color:var(--ink-3);font-weight:500;margin-top:2px}
+.sc.ok{border-color:rgba(47,168,106,.4);background:rgba(47,168,106,.06)}
+.sc.wr{border-color:rgba(232,163,61,.45);background:rgba(232,163,61,.08)}
+.sc.nw{border-color:var(--navy-l);background:var(--navy-50)}
+.reuse{background:var(--navy-50);border:.5px solid var(--navy-100);border-radius:9px;padding:9px 12px;
+ font-size:12px;color:var(--ink-2);font-weight:600;margin-bottom:10px}
+.reuse b{color:var(--navy);font-weight:800}
+.rbar{height:5px;background:#fff;border-radius:3px;overflow:hidden;margin-top:7px}
+.rbar i{display:block;height:100%;background:var(--ok,#2FA86A);border-radius:3px}
+.flowbox{background:var(--surface);border:.5px solid var(--line-2);border-radius:12px;padding:12px 15px;
+ margin-bottom:13px;display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-size:12px;font-weight:600;color:var(--ink-3)}
+.flowbox b{background:var(--navy-50);color:var(--navy);padding:4px 10px;border-radius:7px;font-weight:700}
+.flowbox b.cur{background:var(--navy);color:#fff}
+.empty-s{padding:38px 20px;text-align:center;color:var(--ink-3);font-size:13px}
+.legend{display:flex;flex-wrap:wrap;gap:7px 16px;font-size:11.5px;color:var(--ink-2);margin-top:11px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:12px;height:12px;border-radius:4px;border:.5px solid rgba(0,0,0,.06)}
+.hint{font-size:12px;color:var(--ink-3);line-height:1.7;max-width:820px;margin-top:12px}
+.hint b{color:var(--ink-2);font-weight:700}
+
+@media (max-width:600px){
+ .appbar{padding:10px 13px 0}.tool{padding:11px 13px}.body{padding:12px 13px 32px}
+ .title{font-size:15.5px}.srch{width:128px}.wrap.tall{max-height:calc(100vh - 276px)}
+ .colrow{grid-template-columns:1fr 78px 26px}.colrow select.sync{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<div class="appbar">
+  <div class="brand"><span class="logo"></span><h1>CosmeDB</h1><span class="sub">데모 데이터 · 실제 업체 정보 아님</span></div>
+  <div class="tabs">
+    <button class="tab on" data-p="p1">1 업체마스터<span class="bdg" id="b1">63</span></button>
+    <button class="tab" data-p="p2">2 조사<span class="bdg" id="b2">3</span></button>
+    <button class="tab" data-p="p3">3 방문예정처<span class="bdg" id="b3">0</span></button>
+    <button class="tab" data-p="p4">4 등록평가<span class="bdg" id="b4">0</span></button>
+  </div>
+</div>
+
+<div class="page on" id="p1">
+  <div class="tool">
+    <div class="trow"><span class="title">업체마스터</span>
+      <span class="note">행을 누르면 기본정보와 6개월 갱신 이력이 열립니다</span>
+      <span class="spacer"></span><input class="srch" id="q1" placeholder="기업명 · 대표자 검색"></div>
+    <div class="chips" id="c1"></div>
+  </div>
+  <div class="body">
+    <div class="flowbox"><b class="cur">1 마스터</b>→<b>2 조사</b>→<b>3 방문예정처</b>→<b>4 등록평가</b>
+      <span class="spacer"></span><span class="note">조사 완료 시 마스터가 갱신되고 이력이 기록됩니다</span></div>
+    <div class="wrap tall"><table class="nw" id="t1"></table></div>
+  </div>
+</div>
+
+<div class="page" id="p2">
+  <div class="tool">
+    <div class="trow"><span class="title">조사</span>
+      <span class="note">행을 누르면 대상 업체 목록이 아래로 펼쳐집니다</span>
+      <span class="spacer"></span>
+      <button class="btn" id="pickSurvey">＋ 마스터에서 업체 지정</button>
+      <button class="btn pri" id="newSurvey">＋ 리스트 업로드</button></div>
+  </div>
+  <div class="body"><div class="wrap"><table id="t2"></table></div></div>
+</div>
+
+<div class="page" id="p3">
+  <div class="tool">
+    <div class="trow"><span class="title">방문예정처</span>
+      <span class="note">출발 기준 · 세종 전의면 산단길 22-17</span>
+      <span class="spacer"></span><button class="btn">＋ 신규 등록</button><button class="btn pri">Excel 저장</button></div>
+    <div class="chips" id="c3"></div>
+    <div class="gts" id="g3"><span class="lb">열 그룹</span></div>
+  </div>
+  <div class="body">
+    <div class="wrap tall"><table class="nw" id="t3"></table></div>
+    <div class="legend" id="lg3"></div>
+    <p class="hint"><b>공통 가능일</b>은 협생∩품보를 먼저 구하고 그 결과를 업체 가능일과 다시 교차시킵니다.
+      <b>방문 예정시간</b>을 입력하면 이동 시간과 출발 시각이 같은 칸에 계산됩니다(참고 추정치).
+      진행 상태를 <b>방문예정</b>으로 바꾸면 4번 등록평가가 생성됩니다.</p>
+  </div>
+</div>
+
+<div class="page" id="p4">
+  <div class="tool">
+    <div class="trow"><span class="title">등록평가</span>
+      <span class="note">방문예정 전환 시 생성됩니다 · 평가서는 기존 등록평가 시스템에서 작성</span>
+      <span class="spacer"></span>
+      <a class="btn" href="https://duckjin87-web.github.io/cosmeticdb/" target="_blank" rel="noopener">등록평가 시스템 열기 ↗</a></div>
+    <div class="chips" id="c4"></div>
+  </div>
+  <div class="body"><div class="egrid" id="e4"></div></div>
+</div>
+
+<div class="scrim" id="scrim"><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ 데이터 ============ */
+const MASTER = [{"id":"V001","name":"누리랩","ceo":"최수아","region":"서울","addr":"서울 강서구 마곡중앙로 198","owner":"박승흠","prog":"완료","fl":["Long-list","우원3T가마"],"est":"2016-07-02","site":"https://example-01.co.kr","desc":"헤어·바디 대용량 라인 / 샴푸, 린스 위주 / 대형 유화기 보유","cgmp":"가능/보유","gama":"5톤 1대","g3":"5톤 1대","capa":"80만개/월","qstat":""},{"id":"V002","name":"가온화장품","ceo":"오나윤","region":"인천","addr":"인천 남동구 남동서로 66","owner":"정하늘","prog":"확인필요","fl":["Long-list","우원3T가마"],"est":"1998-03-23","site":"https://example-02.co.kr","desc":"마스크팩·하이드로겔 전문 / 자동 파우치 충전기 3대","cgmp":"가능/보유","gama":"6톤 1대","g3":"6톤 1대","capa":"200만개/월","qstat":"확인필요"},{"id":"V003","name":"라온랩","ceo":"신현우","region":"충북","addr":"충북 음성군 대소면 삼호로 77","owner":"박승흠","prog":"답변대기중","fl":["Long-list","방문진행"],"est":"2015-02-13","site":"https://example-03.co.kr","desc":"마스크팩·하이드로겔 전문 / 자동 파우치 충전기 3대","cgmp":"","gama":"","g3":"","capa":"","qstat":"확인필요"},{"id":"V004","name":"단아케미칼","ceo":"한수아","region":"경북","addr":"경북 구미시 산동읍 첨단로 30","owner":"김동욱","prog":"완료","fl":["Long-list"],"est":"2010-05-15","site":"","desc":"선케어 대응 가능 / 기능성 심사 이력 다수 / 색조 병행","cgmp":"가능/보유","gama":"1톤 2대","g3":"","capa":"250만개/월","qstat":"확인필요"},{"id":"V005","name":"사랑코스텍","ceo":"","region":"경북","addr":"경북 구미시 산동읍 첨단로 165","owner":"김동욱","prog":"진행중","fl":["Long-list","우원3T가마"],"est":"2003-08-13","site":"https://example-05.co.kr","desc":"설비 제조사 / 유화기, 실링기 공급 / 사후 서비스 4시간 내","cgmp":"가능/보유","gama":"3톤 2대","g3":"3톤 2대","capa":"","qstat":"확인필요"},{"id":"V006","name":"여울코스메틱","ceo":"","region":"인천","addr":"인천 남동구 남동서로 112","owner":"이수민","prog":"완료","fl":["Long-list"],"est":"2004-10-23","site":"https://example-06.co.kr","desc":"충전·포장 전문 / 제조는 위탁 / 펌프·디스펜서 라인","cgmp":"불가/미보유","gama":"2톤 1대, 1톤 2대","g3":"","capa":"","qstat":"확인필요"},{"id":"V007","name":"마루코스텍","ceo":"장나윤","region":"경기","addr":"경기 평택시 청북읍 드림산단로 159","owner":"정하늘","prog":"답변대기중","fl":["Long-list","우원3T가마"],"est":"2009-04-05","site":"https://example-07.co.kr","desc":"ISO 22716 인증 / 튜브·자 충전 라인 보유 / 소량 다품종 대응","cgmp":"가능/보유","gama":"1톤 2대","g3":"","capa":"","qstat":"확인완료"},{"id":"V008","name":"마루바이오","ceo":"임도윤","region":"전북","addr":"전북 익산시 왕궁면 산업로 107","owner":"정하늘","prog":"확인필요","fl":["Long-list","우원3T가마","방문진행"],"est":"2015-01-22","site":"","desc":"설비 제조사 / 유화기, 실링기 공급 / 사후 서비스 4시간 내","cgmp":"가능/보유","gama":"6톤 1대","g3":"6톤 1대","capa":"","qstat":""},{"id":"V009","name":"타래랩","ceo":"윤민준","region":"인천","addr":"인천 서구 가좌로 138","owner":"김동욱","prog":"완료","fl":["Long-list"],"est":"2018-05-27","site":"","desc":"원료 유통 / 시험성적서 발행 체계 보유 / 소분 대응","cgmp":"가능/보유","gama":"1톤 2대","g3":"","capa":"200만개/월","qstat":"확인필요"},{"id":"V010","name":"한별바이오","ceo":"","region":"충남","addr":"충남 아산시 둔포면 아산밸리로 10","owner":"이수민","prog":"답변대기중","fl":["Long-list","우원3T가마"],"est":"1998-02-12","site":"","desc":"마스크팩·하이드로겔 전문 / 자동 파우치 충전기 3대","cgmp":"가능/보유","gama":"","g3":"","capa":"150만개/월","qstat":"확인완료"},{"id":"V011","name":"은결테크","ceo":"윤도윤","region":"경기","addr":"경기 화성시 향남읍 발안공단로 42","owner":"김동욱","prog":"답변대기중","fl":["Long-list"],"est":"2015-03-09","site":"https://example-11.co.kr","desc":"원료 유통 / 시험성적서 발행 체계 보유 / 소분 대응","cgmp":"불가/미보유","gama":"","g3":"","capa":"200만개/월","qstat":""},{"id":"V012","name":"한별케미칼","ceo":"한현우","region":"경북","addr":"경북 구미시 산동읍 첨단로 142","owner":"정하늘","prog":"완료","fl":["Long-list"],"est":"2005-04-03","site":"https://example-12.co.kr","desc":"원료 유통 / 시험성적서 발행 체계 보유 / 소분 대응","cgmp":"","gama":"3톤 1대, 5톤 1대","g3":"3톤 1대, 5톤 1대","capa":"200만개/월","qstat":""},{"id":"V013","name":"아라코스메틱","ceo":"김수아","region":"경기","addr":"경기 화성시 향남읍 발안공단로 18","owner":"이수민","prog":"완료","fl":["Long-list"],"est":"2014-04-09","site":"","desc":"헤어·바디 대용량 라인 / 샴푸, 린스 위주 / 대형 유화기 보유","cgmp":"","gama":"3톤 2대","g3":"3톤 2대","capa":"200만개/월","qstat":""},{"id":"V014","name":"다래테크","ceo":"서소율","region":"대전","addr":"대전 유성구 테크노중앙로 58","owner":"박승흠","prog":"완료","fl":["Long-list","방문진행"],"est":"2019-07-12","site":"https://example-14.co.kr","desc":"충전·포장 전문 / 제조는 위탁 / 펌프·디스펜서 라인","cgmp":"가능/보유","gama":"6톤 1대","g3":"6톤 1대","capa":"","qstat":""},{"id":"V015","name":"나린코스","ceo":"신지우","region":"경북","addr":"경북 구미시 산동읍 첨단로 59","owner":"김동욱","prog":"답변대기중","fl":["Long-list","방문진행"],"est":"2002-07-06","site":"https://example-15.co.kr","desc":"헤어·바디 대용량 라인 / 샴푸, 린스 위주 / 대형 유화기 보유","cgmp":"가능/보유","gama":"5톤 2대","g3":"5톤 2대","capa":"300만개/월","qstat":""},{"id":"V016","name":"라온코스메틱","ceo":"","region":"경남","addr":"경남 김해시 주촌면 골든루트로 33","owner":"김동욱","prog":"진행중","fl":["Long-list","방문진행"],"est":"2011-08-16","site":"https://example-16.co.kr","desc":"부자재 전문 / 단상자, 라벨 인쇄 4도 대응","cgmp":"가능/보유","gama":"3톤 1대","g3":"3톤 1대","capa":"200만개/월","qstat":"확인필요"},{"id":"V017","name":"가온코스","ceo":"","region":"인천","addr":"인천 서구 가좌로 83","owner":"정하늘","prog":"답변대기중","fl":["Long-list"],"est":"2002-04-10","site":"https://example-17.co.kr","desc":"CGMP 인증 보유 / 기초, 색조 중심 / 자체 시험실 운영","cgmp":"","gama":"3톤 1대, 5톤 1대","g3":"3톤 1대, 5톤 1대","capa":"","qstat":""},{"id":"V018","name":"나린팩","ceo":"윤건우","region":"서울","addr":"서울 강서구 마곡중앙로 50","owner":"박승흠","prog":"완료","fl":["Long-list"],"est":"2003-02-20","site":"https://example-18.co.kr","desc":"헤어·바디 대용량 라인 / 샴푸, 린스 위주 / 대형 유화기 보유","cgmp":"불가/미보유","gama":"","g3":"","capa":"150만개/월","qstat":""},{"id":"V019","name":"아라테크","ceo":"이유진","region":"대전","addr":"대전 유성구 테크노중앙로 154","owner":"이수민","prog":"확인필요","fl":["Long-list"],"est":"2004-11-23","site":"https://example-19.co.kr","desc":"마스크팩·하이드로겔 전문 / 자동 파우치 충전기 3대","cgmp":"불가/미보유","gama":"","g3":"","capa":"200만개/월","qstat":""},{"id":"V020","name":"누리코스텍","ceo":"서도윤","region":"충남","addr":"충남 천안시 서북구 직산읍 산단로 127","owner":"박승흠","prog":"완료","fl":["Long-list","방문진행"],"est":"2015-04-17","site":"https://example-20.co.kr","desc":"선케어 대응 가능 / 기능성 심사 이력 다수 / 색조 병행","cgmp":"가능/보유","gama":"3톤 1대","g3":"3톤 1대","capa":"200만개/월","qstat":"확인필요"},{"id":"V021","name":"차온바이오","ceo":"","region":"충남","addr":"충남 천안시 서북구 직산읍 산단로 166","owner":"박승흠","prog":"확인필요","fl":["방문진행"],"est":"2019-02-05","site":"https://example-21.co.kr","desc":"ISO 22716 인증 / 튜브·자 충전 라인 보유 / 소량 다품종 대응","cgmp":"","gama":"1톤 2대","g3":"","capa":"200만개/월","qstat":"확인필요"},{"id":"V022","name":"차온테크","ceo":"최지호","region":"인천","addr":"인천 남동구 남동서로 135","owner":"이수민","prog":"완료","fl":["우원3T가마"],"est":"2000-11-14","site":"","desc":"CGMP 인증 보유 / 기초, 색조 중심 / 자체 시험실 운영","cgmp":"가능/보유","gama":"","g3":"","capa":"250만개/월","qstat":"확인완료"},{"id":"V023","name":"바림뷰티랩","ceo":"장민준","region":"충남","addr":"충남 아산시 둔포면 아산밸리로 29","owner":"김동욱","prog":"완료","fl":[],"est":"2009-10-18","site":"https://example-23.co.kr","desc":"기초 스킨케어 전문 / 앰플·세럼 강점 / 비건 인증 진행 중","cgmp":"가능/보유","gama":"3톤 2대","g3":"3톤 2대","capa":"250만개/월","qstat":"확인필요"},{"id":"V024","name":"은결코스메틱","ceo":"최지우","region":"충북","addr":"충북 청주시 흥덕구 오송생명로 153","owner":"정하늘","prog":"진행중","fl":[],"est":"2005-03-26","site":"","desc":"부자재 전문 / 단상자, 라벨 인쇄 4도 대응","cgmp":"가능/보유","gama":"2톤 1대, 1톤 2대","g3":"","capa":"200만개/월","qstat":""},{"id":"V025","name":"다래팩","ceo":"","region":"전북","addr":"전북 익산시 왕궁면 산업로 78","owner":"김동욱","prog":"완료","fl":["우원3T가마","방문진행"],"est":"2010-01-28","site":"https://example-25.co.kr","desc":"헤어·바디 대용량 라인 / 샴푸, 린스 위주 / 대형 유화기 보유","cgmp":"불가/미보유","gama":"5톤 2대","g3":"5톤 2대","capa":"250만개/월","qstat":"확인필요"},{"id":"V026","name":"여울케미칼","ceo":"최시우","region":"인천","addr":"인천 남동구 남동서로 81","owner":"박승흠","prog":"확인필요","fl":[],"est":"2009-11-17","site":"https://example-26.co.kr","desc":"설비 제조사 / 유화기, 실링기 공급 / 사후 서비스 4시간 내","cgmp":"가능/보유","gama":"2톤 1대, 1톤 2대","g3":"","capa":"150만개/월","qstat":"확인완료"},{"id":"V027","name":"은결코스텍","ceo":"정서연","region":"경기","addr":"경기 평택시 청북읍 드림산단로 162","owner":"정하늘","prog":"확인필요","fl":["우원3T가마"],"est":"2021-06-14","site":"","desc":"설비 제조사 / 유화기, 실링기 공급 / 사후 서비스 4시간 내","cgmp":"가능/보유","gama":"3톤 2대","g3":"3톤 2대","capa":"300만개/월","qstat":""},{"id":"V028","name":"다래화장품","ceo":"오예준","region":"경남","addr":"경남 김해시 주촌면 골든루트로 120","owner":"박승흠","prog":"확인필요","fl":["우원3T가마"],"est":"2017-06-22","site":"","desc":"마스크팩·하이드로겔 전문 / 자동 파우치 충전기 3대","cgmp":"","gama":"2톤 1대, 1톤 2대","g3":"","capa":"250만개/월","qstat":""},{"id":"V029","name":"새롬팩","ceo":"장하준","region":"충북","addr":"충북 음성군 대소면 삼호로 117","owner":"정하늘","prog":"진행중","fl":[],"est":"2017-10-10","site":"https://example-29.co.kr","desc":"CGMP 인증 보유 / 기초, 색조 중심 / 자체 시험실 운영","cgmp":"가능/보유","gama":"5톤 2대","g3":"5톤 2대","capa":"250만개/월","qstat":"확인완료"},{"id":"V030","name":"새롬테크","ceo":"윤태현","region":"대전","addr":"대전 유성구 테크노중앙로 182","owner":"김동욱","prog":"답변대기중","fl":[],"est":"2021-03-22","site":"https://example-30.co.kr","desc":"설비 제조사 / 유화기, 실링기 공급 / 사후 서비스 4시간 내","cgmp":"","gama":"3톤 1대, 5톤 1대","g3":"3톤 1대, 5톤 1대","capa":"250만개/월","qstat":"확인완료"}];
+const RAWVISIT = [{"업체ID":"V003","상호명":"라온랩","상태":"방문완료","의뢰예상제품":"대용량 헤어 제품","소재지":"충북 음성군 대소면 삼호로 77","업체 담당자":"신현우 영업팀장","연락처":"010-0000-1000","E-MAIL":"sales@example-01.co.kr","소개자료 링크":"회사소개서_2026.pdf","업체 요청일":"당사 일정 협의가능","협/생팀 가능일":"김지훈·이서연 7/23~24","품질보증팀 가능일":"정하늘 7/23~24","확정 방문일":"2026-07-23","시간(출발포함)":"14시","방문자":"협력생산 2, 품질보증 1","방문결과/후속조치":"설비 상태 양호, 캐파 회신 요청","수배주체":"품질보증","수배사유":"2차 벤더 확보"},{"업체ID":"V008","상호명":"마루바이오","상태":"방문완료","의뢰예상제품":"마스크팩 신규","소재지":"전북 익산시 왕궁면 산업로 107","업체 담당자":"임도윤 영업팀장","연락처":"010-0000-1001","E-MAIL":"sales@example-02.co.kr","소개자료 링크":"","업체 요청일":"8/12~8/16 가능","협/생팀 가능일":"박도윤 8/12~8/14","품질보증팀 가능일":"품보 8/13~8/15","확정 방문일":"2026-08-13","시간(출발포함)":"10시","방문자":"협력생산 2, 품질보증 1","방문결과/후속조치":"인쇄 4도 대응 가능, 합지 라인 노후","수배주체":"품질보증","수배사유":"2차 벤더 확보"},{"업체ID":"V014","상호명":"다래테크","상태":"방문완료","의뢰예상제품":"튜브 제형 신규","소재지":"대전 유성구 테크노중앙로 58","업체 담당자":"서소율 영업팀장","연락처":"010-0000-1002","E-MAIL":"sales@example-03.co.kr","소개자료 링크":"회사소개서_2026.pdf","업체 요청일":"8/5~8/6 오전","협/생팀 가능일":"협생 8/5~8/6","품질보증팀 가능일":"정하늘 8/4~8/8","확정 방문일":"2026-08-05","시간(출발포함)":"9시반","방문자":"협력생산 2, 품질보증 1","방문결과/후속조치":"시험성적서 체계 양호, 창고 온습도 기록 보완 필요","수배주체":"협력생산","수배사유":"2차 벤더 확보"},{"업체ID":"V015","상호명":"나린코스","상태":"확정","의뢰예상제품":"마스크팩 신규","소재지":"경북 구미시 산동읍 첨단로 59","업체 담당자":"신지우 영업팀장","연락처":"010-0000-1003","E-MAIL":"sales@example-04.co.kr","소개자료 링크":"","업체 요청일":"8/18~8/20","협/생팀 가능일":"최민준 8/18~8/20","품질보증팀 가능일":"품보 8/19~8/21","확정 방문일":"2026-08-19","시간(출발포함)":"13시","방문자":"협력생산 2, 품질보증 1","방문결과/후속조치":"","수배주체":"협력생산","수배사유":"2차 벤더 확보"},{"업체ID":"V016","상호명":"라온코스메틱","상태":"재방문예정","의뢰예상제품":"마스크팩 신규","소재지":"경남 김해시 주촌면 골든루트로 33","업체 담당자":"담당자 영업팀장","연락처":"010-0000-1004","E-MAIL":"sales@example-05.co.kr","소개자료 링크":"회사소개서_2026.pdf","업체 요청일":"9/2~9/5","협/생팀 가능일":"협생팀 9/2~9/4","품질보증팀 가능일":"이수민 9/3~9/5","확정 방문일":"","시간(출발포함)":"","방문자":"","방문결과/후속조치":"","수배주체":"품질보증","수배사유":"2차 벤더 확보"},{"업체ID":"V020","상호명":"누리코스텍","상태":"일정협의","의뢰예상제품":"마스크팩 신규","소재지":"충남 천안시 서북구 직산읍 산단로 127","업체 담당자":"서도윤 영업팀장","연락처":"010-0000-1005","E-MAIL":"sales@example-06.co.kr","소개자료 링크":"","업체 요청일":"8/25 이후","협/생팀 가능일":"김지훈 8/25~8/27","품질보증팀 가능일":"품보 8/26~8/28","확정 방문일":"","시간(출발포함)":"","방문자":"","방문결과/후속조치":"","수배주체":"협력생산","수배사유":"기존 벤더 납기 지연"},{"업체ID":"V021","상호명":"차온바이오","상태":"일정협의","의뢰예상제품":"대용량 헤어 제품","소재지":"충남 천안시 서북구 직산읍 산단로 166","업체 담당자":"담당자 영업팀장","연락처":"010-0000-1006","E-MAIL":"sales@example-07.co.kr","소개자료 링크":"회사소개서_2026.pdf","업체 요청일":"9/8~9/12","협/생팀 가능일":"박도윤 9/8~9/10","품질보증팀 가능일":"이수민 9/9~9/12","확정 방문일":"","시간(출발포함)":"","방문자":"","방문결과/후속조치":"","수배주체":"품질보증","수배사유":"기존 벤더 납기 지연"},{"업체ID":"V025","상호명":"다래팩","상태":"보류","의뢰예상제품":"튜브 제형 신규","소재지":"전북 익산시 왕궁면 산업로 78","업체 담당자":"담당자 영업팀장","연락처":"010-0000-1007","E-MAIL":"sales@example-08.co.kr","소개자료 링크":"","업체 요청일":"미접수","협/생팀 가능일":"미정","품질보증팀 가능일":"미정","확정 방문일":"","시간(출발포함)":"","방문자":"","방문결과/후속조치":"","수배주체":"품질보증","수배사유":"기존 벤더 납기 지연"}];
+const DICT = [{"k":"EQ01","n":"유화기 최대용량","grp":"EQ","gn":"설비","t":"num","u":"T","ttl":12},{"k":"EQ02","n":"유화기 보유대수","grp":"EQ","gn":"설비","t":"num","u":"대","ttl":12},{"k":"EQ03","n":"튜브 충전","grp":"EQ","gn":"설비","t":"yn","u":"","ttl":12},{"k":"EQ04","n":"자(단지) 충전","grp":"EQ","gn":"설비","t":"yn","u":"","ttl":12},{"k":"EQ05","n":"펌프·디스펜서 충전","grp":"EQ","gn":"설비","t":"yn","u":"","ttl":12},{"k":"EQ06","n":"앰플·스틱 충전","grp":"EQ","gn":"설비","t":"yn","u":"","ttl":12},{"k":"EQ07","n":"마스크팩·하이드로겔","grp":"EQ","gn":"설비","t":"yn","u":"","ttl":12},{"k":"CE01","n":"CGMP","grp":"CE","gn":"인증","t":"yn","u":"","ttl":12},{"k":"CE02","n":"ISO 22716","grp":"CE","gn":"인증","t":"yn","u":"","ttl":12},{"k":"CE03","n":"비건 인증","grp":"CE","gn":"인증","t":"yn","u":"","ttl":12},{"k":"CE04","n":"유기농·COSMOS","grp":"CE","gn":"인증","t":"yn","u":"","ttl":12},{"k":"CE05","n":"할랄","grp":"CE","gn":"인증","t":"yn","u":"","ttl":12},{"k":"CE06","n":"중국 NMPA","grp":"CE","gn":"인증","t":"yn","u":"","ttl":12},{"k":"CP01","n":"월 생산 캐파","grp":"CP","gn":"캐파","t":"num","u":"만개","ttl":6},{"k":"CP02","n":"최소 발주량(MOQ)","grp":"CP","gn":"캐파","t":"num","u":"개","ttl":6},{"k":"CP03","n":"리드타임","grp":"CP","gn":"캐파","t":"num","u":"일","ttl":6},{"k":"FM01","n":"기초 대응","grp":"FM","gn":"제형","t":"yn","u":"","ttl":12},{"k":"FM02","n":"색조 대응","grp":"FM","gn":"제형","t":"yn","u":"","ttl":12},{"k":"FM03","n":"선케어 대응","grp":"FM","gn":"제형","t":"yn","u":"","ttl":12},{"k":"FM04","n":"헤어·바디 대응","grp":"FM","gn":"제형","t":"yn","u":"","ttl":12},{"k":"QA01","n":"자체 시험실","grp":"QA","gn":"품질","t":"yn","u":"","ttl":12},{"k":"RK01","n":"종업원 수","grp":"RK","gn":"리스크","t":"num","u":"명","ttl":12}];
+const VALS = [{"c":"V001","k":"EQ01","v":"5.0","s":"업체 회신","g":"B","m":15},{"c":"V001","k":"EQ02","v":"1","s":"업체 회신","g":"B","m":14},{"c":"V001","k":"CE01","v":"Y","s":"식약처 공표","g":"A","m":4},{"c":"V001","k":"CP01","v":"80","s":"업체 회신","g":"B","m":7},{"c":"V001","k":"FM04","v":"Y","s":"업체 회신","g":"B","m":12},{"c":"V001","k":"CP03","v":"45","s":"업체 회신","g":"B","m":7},{"c":"V001","k":"EQ03","v":"N","s":"구두 확인","g":"C","m":6},{"c":"V002","k":"EQ01","v":"6.0","s":"업체 회신","g":"B","m":2},{"c":"V002","k":"EQ02","v":"1","s":"업체 회신","g":"B","m":14},{"c":"V002","k":"CE01","v":"Y","s":"식약처 공표","g":"A","m":8},{"c":"V002","k":"CP01","v":"200","s":"업체 회신","g":"B","m":11},{"c":"V002","k":"EQ07","v":"Y","s":"방문 실사","g":"A","m":1},{"c":"V003","k":"EQ07","v":"Y","s":"방문 실사","g":"A","m":4},{"c":"V003","k":"CP03","v":"25","s":"업체 회신","g":"B","m":3},{"c":"V003","k":"EQ03","v":"Y","s":"구두 확인","g":"C","m":6},{"c":"V004","k":"EQ01","v":"1.0","s":"업체 회신","g":"B","m":1},{"c":"V004","k":"EQ02","v":"2","s":"업체 회신","g":"B","m":8},{"c":"V004","k":"CE01","v":"Y","s":"식약처 공표","g":"A","m":3},{"c":"V004","k":"CP01","v":"250","s":"업체 회신","g":"B","m":7},{"c":"V004","k":"FM02","v":"Y","s":"업체 회신","g":"B","m":9},{"c":"V004","k":"FM03","v":"Y","s":"업체 회신","g":"B","m":4},{"c":"V005","k":"EQ01","v":"3.0","s":"업체 회신","g":"B","m":2},{"c":"V005","k":"EQ02","v":"2","s":"업체 회신","g":"B","m":8},{"c":"V005","k":"CE01","v":"Y","s":"식약처 공표","g":"A","m":8},{"c":"V005","k":"RK01","v":"60","s":"국민연금 공시","g":"A","m":1},{"c":"V006","k":"EQ01","v":"2.0","s":"업체 회신","g":"B","m":5},{"c":"V006","k":"EQ02","v":"3","s":"업체 회신","g":"B","m":14},{"c":"V006","k":"CE01","v":"N","s":"식약처 공표","g":"A","m":3},{"c":"V006","k":"EQ05","v":"Y","s":"업체 회신","g":"B","m":5},{"c":"V006","k":"RK01","v":"14","s":"국민연금 공시","g":"A","m":2},{"c":"V006","k":"CP03","v":"35","s":"업체 회신","g":"B","m":13},{"c":"V006","k":"EQ03","v":"Y","s":"구두 확인","g":"C","m":16},{"c":"V007","k":"EQ01","v":"1.0","s":"업체 회신","g":"B","m":1},{"c":"V007","k":"EQ02","v":"2","s":"업체 회신","g":"B","m":4},{"c":"V007","k":"CE01","v":"Y","s":"식약처 공표","g":"A","m":2},{"c":"V007","k":"CE02","v":"Y","s":"인증서","g":"A","m":2},{"c":"V007","k":"EQ03","v":"Y","s":"구두 확인","g":"C","m":16},{"c":"V007","k":"EQ04","v":"Y","s":"업체 회신","g":"B","m":6},{"c":"V008","k":"EQ01","v":"6.0","s":"업체 회신","g":"B","m":7},{"c":"V008","k":"EQ02","v":"1","s":"업체 회신","g":"B","m":6},{"c":"V008","k":"CE01","v":"Y","s":"식약처 공표","g":"A","m":1},{"c":"V008","k":"RK01","v":"14","s":"국민연금 공시","g":"A","m":2},{"c":"V008","k":"EQ03","v":"Y","s":"구두 확인","g":"C","m":16},{"c":"V009","k":"EQ01","v":"1.0","s":"업체 회신","g":"B","m":2},{"c":"V009","k":"EQ02","v":"2","s":"업체 회신","g":"B","m":2},{"c":"V009","k":"CE01","v":"Y","s":"식약처 공표","g":"A","m":1},{"c":"V009","k":"CP01","v":"200","s":"업체 회신","g":"B","m":7},{"c":"V009","k":"CP03","v":"30","s":"업체 회신","g":"B","m":13},{"c":"V010","k":"CE01","v":"Y","s":"식약처 공표","g":"A","m":8},{"c":"V010","k":"CP01","v":"150","s":"업체 회신","g":"B","m":4},{"c":"V010","k":"EQ07","v":"Y","s":"방문 실사","g":"A","m":2},{"c":"V010","k":"CP03","v":"45","s":"업체 회신","g":"B","m":7},{"c":"V010","k":"EQ03","v":"N","s":"구두 확인","g":"C","m":6},{"c":"V011","k":"CE01","v":"N","s":"식약처 공표","g":"A","m":2},{"c":"V011","k":"CP01","v":"200","s":"업체 회신","g":"B","m":4},{"c":"V011","k":"RK01","v":"60","s":"국민연금 공시","g":"A","m":3},{"c":"V011","k":"EQ03","v":"Y","s":"구두 확인","g":"C","m":6},{"c":"V012","k":"EQ01","v":"5.0","s":"업체 회신","g":"B","m":15},{"c":"V012","k":"EQ02","v":"2","s":"업체 회신","g":"B","m":6},{"c":"V012","k":"CP01","v":"200","s":"업체 회신","g":"B","m":2},{"c":"V013","k":"EQ01","v":"3.0","s":"업체 회신","g":"B","m":2},{"c":"V013","k":"EQ02","v":"2","s":"업체 회신","g":"B","m":2},{"c":"V013","k":"CP01","v":"200","s":"업체 회신","g":"B","m":2},{"c":"V013","k":"FM04","v":"Y","s":"업체 회신","g":"B","m":3},{"c":"V013","k":"CP03","v":"35","s":"업체 회신","g":"B","m":9},{"c":"V014","k":"EQ01","v":"6.0","s":"업체 회신","g":"B","m":3},{"c":"V014","k":"EQ02","v":"1","s":"업체 회신","g":"B","m":14},{"c":"V014","k":"CE01","v":"Y","s":"식약처 공표","g":"A","m":4},{"c":"V014","k":"EQ05","v":"Y","s":"업체 회신","g":"B","m":5},{"c":"V014","k":"CP03","v":"30","s":"업체 회신","g":"B","m":9},{"c":"V015","k":"EQ01","v":"5.0","s":"업체 회신","g":"B","m":5},{"c":"V015","k":"EQ02","v":"2","s":"업체 회신","g":"B","m":4},{"c":"V015","k":"CE01","v":"Y","s":"식약처 공표","g":"A","m":2},{"c":"V015","k":"CP01","v":"300","s":"업체 회신","g":"B","m":11},{"c":"V015","k":"FM04","v":"Y","s":"업체 회신","g":"B","m":12},{"c":"V015","k":"CP03","v":"45","s":"업체 회신","g":"B","m":13},{"c":"V016","k":"EQ01","v":"3.0","s":"업체 회신","g":"B","m":13},{"c":"V016","k":"EQ02","v":"1","s":"업체 회신","g":"B","m":2},{"c":"V016","k":"CE01","v":"Y","s":"식약처 공표","g":"A","m":1},{"c":"V016","k":"CP01","v":"200","s":"업체 회신","g":"B","m":2},{"c":"V016","k":"RK01","v":"31","s":"국민연금 공시","g":"A","m":1},{"c":"V017","k":"EQ01","v":"5.0","s":"업체 회신","g":"B","m":13},{"c":"V017","k":"EQ02","v":"2","s":"업체 회신","g":"B","m":14},{"c":"V017","k":"FM01","v":"Y","s":"업체 회신","g":"B","m":10},{"c":"V017","k":"FM02","v":"Y","s":"업체 회신","g":"B","m":5},{"c":"V017","k":"QA01","v":"Y","s":"방문 실사","g":"A","m":2},{"c":"V017","k":"EQ03","v":"N","s":"구두 확인","g":"C","m":16},{"c":"V018","k":"CE01","v":"N","s":"식약처 공표","g":"A","m":8},{"c":"V018","k":"CP01","v":"150","s":"업체 회신","g":"B","m":9},{"c":"V018","k":"FM04","v":"Y","s":"업체 회신","g":"B","m":12},{"c":"V018","k":"RK01","v":"22","s":"국민연금 공시","g":"A","m":1},{"c":"V018","k":"EQ03","v":"N","s":"구두 확인","g":"C","m":10},{"c":"V019","k":"CE01","v":"N","s":"식약처 공표","g":"A","m":2},{"c":"V019","k":"CP01","v":"200","s":"업체 회신","g":"B","m":2},{"c":"V019","k":"EQ07","v":"Y","s":"방문 실사","g":"A","m":1},{"c":"V019","k":"RK01","v":"31","s":"국민연금 공시","g":"A","m":3},{"c":"V019","k":"EQ03","v":"N","s":"구두 확인","g":"C","m":6},{"c":"V020","k":"EQ01","v":"3.0","s":"업체 회신","g":"B","m":15},{"c":"V020","k":"EQ02","v":"1","s":"업체 회신","g":"B","m":6},{"c":"V020","k":"CE01","v":"Y","s":"식약처 공표","g":"A","m":8},{"c":"V020","k":"CP01","v":"200","s":"업체 회신","g":"B","m":11},{"c":"V020","k":"FM02","v":"Y","s":"업체 회신","g":"B","m":9},{"c":"V020","k":"FM03","v":"Y","s":"업체 회신","g":"B","m":14},{"c":"V020","k":"CP03","v":"25","s":"업체 회신","g":"B","m":3},{"c":"V021","k":"EQ01","v":"1.0","s":"업체 회신","g":"B","m":9},{"c":"V021","k":"EQ02","v":"2","s":"업체 회신","g":"B","m":6},{"c":"V021","k":"CE02","v":"Y","s":"인증서","g":"A","m":2},{"c":"V021","k":"CP01","v":"200","s":"업체 회신","g":"B","m":2},{"c":"V021","k":"EQ03","v":"Y","s":"구두 확인","g":"C","m":6},{"c":"V021","k":"EQ04","v":"Y","s":"업체 회신","g":"B","m":11},{"c":"V021","k":"RK01","v":"14","s":"국민연금 공시","g":"A","m":3},{"c":"V022","k":"CE01","v":"Y","s":"식약처 공표","g":"A","m":4},{"c":"V022","k":"CP01","v":"250","s":"업체 회신","g":"B","m":9},{"c":"V022","k":"FM01","v":"Y","s":"업체 회신","g":"B","m":6},{"c":"V022","k":"FM02","v":"Y","s":"업체 회신","g":"B","m":9},{"c":"V022","k":"QA01","v":"Y","s":"방문 실사","g":"A","m":2},{"c":"V023","k":"EQ01","v":"3.0","s":"업체 회신","g":"B","m":9},{"c":"V023","k":"EQ02","v":"2","s":"업체 회신","g":"B","m":6},{"c":"V023","k":"CE01","v":"Y","s":"식약처 공표","g":"A","m":1},{"c":"V023","k":"CE03","v":"Y","s":"업체 회신","g":"B","m":11},{"c":"V023","k":"CP01","v":"250","s":"업체 회신","g":"B","m":7},{"c":"V023","k":"FM01","v":"Y","s":"업체 회신","g":"B","m":1},{"c":"V023","k":"EQ06","v":"Y","s":"업체 회신","g":"B","m":9},{"c":"V023","k":"CP03","v":"45","s":"업체 회신","g":"B","m":3},{"c":"V024","k":"EQ01","v":"2.0","s":"업체 회신","g":"B","m":13},{"c":"V024","k":"EQ02","v":"3","s":"업체 회신","g":"B","m":8},{"c":"V024","k":"CE01","v":"Y","s":"식약처 공표","g":"A","m":6},{"c":"V024","k":"CP01","v":"200","s":"업체 회신","g":"B","m":2},{"c":"V024","k":"CP03","v":"25","s":"업체 회신","g":"B","m":9},{"c":"V025","k":"EQ01","v":"5.0","s":"업체 회신","g":"B","m":9},{"c":"V025","k":"EQ02","v":"2","s":"업체 회신","g":"B","m":8},{"c":"V025","k":"CE01","v":"N","s":"식약처 공표","g":"A","m":8},{"c":"V025","k":"CP01","v":"250","s":"업체 회신","g":"B","m":11},{"c":"V025","k":"FM04","v":"Y","s":"업체 회신","g":"B","m":12},{"c":"V026","k":"EQ01","v":"2.0","s":"업체 회신","g":"B","m":1},{"c":"V026","k":"EQ02","v":"3","s":"업체 회신","g":"B","m":6},{"c":"V026","k":"CE01","v":"Y","s":"식약처 공표","g":"A","m":6},{"c":"V026","k":"CP01","v":"150","s":"업체 회신","g":"B","m":2},{"c":"V026","k":"CP03","v":"25","s":"업체 회신","g":"B","m":13},{"c":"V027","k":"EQ01","v":"3.0","s":"업체 회신","g":"B","m":15},{"c":"V027","k":"EQ02","v":"2","s":"업체 회신","g":"B","m":6},{"c":"V027","k":"CE01","v":"Y","s":"식약처 공표","g":"A","m":1},{"c":"V027","k":"CP01","v":"300","s":"업체 회신","g":"B","m":5},{"c":"V027","k":"RK01","v":"88","s":"국민연금 공시","g":"A","m":3},{"c":"V027","k":"CP03","v":"30","s":"업체 회신","g":"B","m":9},{"c":"V028","k":"EQ01","v":"2.0","s":"업체 회신","g":"B","m":15},{"c":"V028","k":"EQ02","v":"3","s":"업체 회신","g":"B","m":8},{"c":"V028","k":"CP01","v":"250","s":"업체 회신","g":"B","m":4},{"c":"V028","k":"EQ07","v":"Y","s":"방문 실사","g":"A","m":2},{"c":"V028","k":"CP03","v":"45","s":"업체 회신","g":"B","m":7},{"c":"V029","k":"EQ01","v":"5.0","s":"업체 회신","g":"B","m":13},{"c":"V029","k":"EQ02","v":"2","s":"업체 회신","g":"B","m":4},{"c":"V029","k":"CE01","v":"Y","s":"식약처 공표","g":"A","m":6},{"c":"V029","k":"CP01","v":"250","s":"업체 회신","g":"B","m":5},{"c":"V029","k":"FM01","v":"Y","s":"업체 회신","g":"B","m":3},{"c":"V029","k":"FM02","v":"Y","s":"업체 회신","g":"B","m":2},{"c":"V029","k":"QA01","v":"Y","s":"방문 실사","g":"A","m":2},{"c":"V030","k":"EQ01","v":"5.0","s":"업체 회신","g":"B","m":2},{"c":"V030","k":"EQ02","v":"2","s":"업체 회신","g":"B","m":6},{"c":"V030","k":"CP01","v":"250","s":"업체 회신","g":"B","m":4},{"c":"V030","k":"RK01","v":"45","s":"국민연금 공시","g":"A","m":2}];
+const DMAP={}; DICT.forEach(function(d){DMAP[d.k]=d});
+const VMAP={}; VALS.forEach(function(v){(VMAP[v.c]=VMAP[v.c]||{})[v.k]=v});
+const GRN={A:4,B:3,C:2,D:1};
+function getVal(cid,code){return (VMAP[cid]||{})[code]}
+function isFresh(v){return v&&DMAP[v.k]&&v.m<DMAP[v.k].ttl}
+/* 중복 판정: have=유효한 답 보유 / stale=기간 경과 / new=값 없음 */
+function dupOf(cid,codes){
+  let have=0,stale=0,none=0;
+  codes.forEach(function(k){
+    const v=getVal(cid,k);
+    if(!v)none++; else if(isFresh(v))have++; else stale++;
+  });
+  return {have:have,stale:stale,none:none,
+    st:(none===0&&stale===0)?"have":(none===0?"stale":"new")};
+}
+function setVal(cid,code,val,src,grade){
+  const d=DMAP[code]; if(!d)return;
+  const cur=getVal(cid,code);
+  if(cur){cur.v=String(val);cur.s=src;cur.g=grade||"B";cur.m=0;}
+  else{const nv={c:cid,k:code,v:String(val),s:src,g:grade||"B",m:0};VALS.push(nv);
+    (VMAP[cid]=VMAP[cid]||{})[code]=nv;}
+}
+const TODAY = new Date(2026,7,27);           // 2026-08-27
+function iso(d){return d.toISOString().slice(0,10)}
+function ago(m){const d=new Date(TODAY);d.setMonth(d.getMonth()-m);return d}
+
+MASTER.forEach(function(m){ m.surveys=m.fl.slice(); m.hist=m.hist||[]; });
+
+/* 시연용 갱신 이력 (6개월 경계를 보여주기 위해 일부는 7~9개월 전) */
+(function seedHist(){
+  const H=[
+    ["V001","3T 가마","","5톤 1대",1,"S002 우원 3T 가마"],
+    ["V001","진행상황","답변대기중","확인필요",1,"S002 우원 3T 가마"],
+    ["V002","3T 가마","3톤 1대","6톤 1대",2,"S002 우원 3T 가마"],
+    ["V002","확인담당자","박승흠","정하늘",4,"수기 수정"],
+    ["V003","CGMP","","가능/보유",3,"S001 Long-list 1차 후보"],
+    ["V003","기업개요","기초 스킨케어","기초 스킨케어 전문 / 앰플·세럼 강점",3,"S001 Long-list 1차 후보"],
+    ["V004","총 CAPA","200만개/월","250만개/월",5,"S001 Long-list 1차 후보"],
+    ["V004","주소","인천 남동구","인천 남동구 남동서로 66",8,"수기 수정"],
+    ["V005","대표자명","","김담당",9,"초기 등록"],
+    ["V006","진행상황","진행중","완료",1,"방문 결과 반영"],
+    ["V007","진행상황","확인필요","완료",2,"방문 결과 반영"]
+  ];
+  H.forEach(function(h){
+    const m=MASTER.filter(function(x){return x.id===h[0]})[0]; if(!m)return;
+    m.hist.push({d:iso(ago(h[4])),f:h[1],b:h[2],a:h[3],s:h[5]});
+  });
+  MASTER.forEach(function(m){m.hist.sort(function(a,b){return a.d<b.d?1:-1})});
+})();
+
+/* ============ 공통 ============ */
+function norm(s){return String(s||"").replace(/\(주\)|㈜|주식회사|\(유\)|유한회사/g,"").replace(/\s/g,"").toLowerCase()}
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function dim(v){return '<span class="dim">'+esc(v||"—")+'</span>'}
+function toast(m){const t=document.getElementById("toast");t.innerHTML=m;t.classList.add("on");
+ clearTimeout(t._x);t._x=setTimeout(function(){t.classList.remove("on")},3200)}
+function close(){document.getElementById("scrim").classList.remove("on")}
+document.getElementById("scrim").onclick=function(e){if(e.target===this)close()};
+function byId(id){return MASTER.filter(function(m){return m.id===id})[0]}
+function pushHist(m,f,b,a,s){ if(String(b||"")===String(a||""))return;
+  m.hist.unshift({d:iso(TODAY),f:f,b:b||"",a:a||"",s:s}); }
+
+/* ============ TAB1 마스터 ============ */
+let f1="all", q1="";
+function drawT1(){
+  const rows=MASTER.filter(function(m){
+    if(f1!=="all"&&m.surveys.indexOf(f1)<0)return false;
+    if(q1&&norm(m.name).indexOf(norm(q1))<0&&norm(m.ceo).indexOf(norm(q1))<0)return false;
+    return true;});
+  let h="<thead><tr><th>업체ID</th><th>기업명</th><th>대표자</th><th>지역</th><th>확인담당</th><th class='ctr'>진행상황</th>"+
+    "<th>조사 이력</th><th class='ctr'>CGMP</th><th>3T 가마</th><th class='ctr'>갱신</th><th>기업개요</th></tr></thead><tbody>";
+  rows.forEach(function(m){
+    const pg={"완료":"p-ok","진행중":"p-info","확인필요":"p-warn","답변대기중":"p-gray"}[m.prog]||"p-gray";
+    const rec=m.hist.filter(function(x){return x.d>=iso(ago(6))}).length;
+    h+="<tr class='clickrow' data-m='"+m.id+"'><td class='dim'>"+m.id+"</td><td><span class='nm'>"+esc(m.name)+"</span></td>"+
+      "<td>"+(m.ceo?esc(m.ceo):dim())+"</td><td>"+esc(m.region)+"</td><td>"+esc(m.owner)+"</td>"+
+      "<td class='ctr'><span class='pill "+pg+"'>"+esc(m.prog)+"</span></td>"+
+      "<td>"+(m.surveys.length?m.surveys.map(function(s){return "<span class='fl'>"+esc(s)+"</span>"}).join(""):dim("없음"))+"</td>"+
+      "<td class='ctr'>"+(m.cgmp?(m.cgmp.indexOf("가능")>=0?"<span class='pill p-ok'>보유</span>":"<span class='pill p-gray'>미보유</span>"):dim())+"</td>"+
+      "<td>"+(m.g3?esc(m.g3):dim())+"</td>"+
+      "<td class='ctr'>"+(rec?"<span class='pill p-info'>"+rec+"건</span>":dim("—"))+"</td>"+
+      "<td class='wide'>"+(m.desc?esc(m.desc):dim())+"</td></tr>";
+  });
+  h+="</tbody>";
+  const t=document.getElementById("t1"); t.innerHTML=h;
+  document.getElementById("b1").textContent=rows.length;
+  t.querySelectorAll("[data-m]").forEach(function(tr){tr.onclick=function(){openMaster(tr.dataset.m)}});
+}
+function drawC1(){
+  const keys=[]; MASTER.forEach(function(m){m.surveys.forEach(function(s){if(keys.indexOf(s)<0)keys.push(s)})});
+  const c=document.getElementById("c1"); c.innerHTML="";
+  [["all","전체",MASTER.length]].concat(keys.map(function(k){
+    return [k,k,MASTER.filter(function(m){return m.surveys.indexOf(k)>=0}).length]})).forEach(function(d){
+    const b=document.createElement("button");
+    b.className="chip"; b.setAttribute("aria-pressed",d[0]===f1?"true":"false");
+    b.innerHTML=esc(d[1])+"<span class='n'>"+d[2]+"</span>";
+    b.onclick=function(){f1=d[0];drawC1();drawT1()};
+    c.appendChild(b);
+  });
+}
+document.getElementById("q1").addEventListener("input",function(e){q1=e.target.value;drawT1()});
+
+function openMaster(id){
+  const m=byId(id); const cut=iso(ago(6));
+  const recent=m.hist.filter(function(x){return x.d>=cut});
+  const older=m.hist.filter(function(x){return x.d<cut});
+  let h="<div class='sh-h'><div class='k'>"+m.id+" · "+esc(m.region)+"</div><h3>"+esc(m.name)+"</h3>"+
+    "<p>"+esc(m.desc||"기업개요 미기재")+"</p></div><div class='sh-b'>";
+  h+="<label>기본정보</label><div class='map'>";
+  [["대표자명",m.ceo],["지역",m.region],["주소",m.addr],["확인담당자",m.owner],["진행상황",m.prog],
+   ["설립일",m.est],["홈페이지",m.site],["CGMP",m.cgmp],["3T 가마",m.g3],["보유 가마",m.gama],["총 CAPA",m.capa]]
+  .forEach(function(r){
+    h+="<div class='kv'><dt>"+r[0]+"</dt><dd>"+(r[1]?esc(r[1]):dim())+"</dd></div>";
+  });
+  h+="</div><label>조사 이력</label><div>"+(m.surveys.length?m.surveys.map(function(s){
+      return "<span class='fl'>"+esc(s)+"</span>"}).join(""):dim("조사 이력 없음"))+"</div>";
+  h+="<label>갱신 이력 · 최근 6개월 ("+recent.length+"건)</label><div class='hist'>";
+  if(!recent.length) h+="<div class='hrow'><time>—</time><div class='ch'><span class='dim'>최근 6개월 내 갱신 없음</span></div></div>";
+  recent.forEach(function(x){
+    h+="<div class='hrow'><time>"+x.d.slice(2)+"</time><div class='ch'><b>"+esc(x.f)+"</b> "+
+      (x.b?"<span class='old'>"+esc(x.b)+"</span>":"")+esc(x.a||"(삭제)")+
+      "<span class='src'>"+esc(x.s)+"</span></div></div>";
+  });
+  h+="</div>";
+  if(older.length){
+    h+="<label>6개월 이전 ("+older.length+"건 · 참고)</label><div class='hist'>";
+    older.slice(0,4).forEach(function(x){
+      h+="<div class='hrow old-h'><time>"+x.d.slice(2)+"</time><div class='ch'><b>"+esc(x.f)+"</b> "+
+        (x.b?"<span class='old'>"+esc(x.b)+"</span>":"")+esc(x.a)+"<span class='src'>"+esc(x.s)+"</span></div></div>";
+    });
+    h+="</div><div class='tip'>6개월 이전 이력은 접힌 상태로 보관됩니다. 이전 자료의 오류를 추적할 때만 참고하세요.</div>";
+  }
+  h+="</div><div class='sh-f'><button class='btn' id='cxm'>닫기</button></div>";
+  document.getElementById("sheet").innerHTML=h;
+  document.getElementById("scrim").classList.add("on");
+  document.getElementById("cxm").onclick=close;
+}
+
+/* ============ 매칭 엔진 ============ */
+/* 업체명 · 대표자 · 주소지 중 2개 이상 일치 → 자동 연결 */
+let THRESH=2;
+function addrHit(a,b){
+  a=norm(a); b=norm(b); if(!a||!b)return false;
+  const key=a.slice(0,5); if(key.length<3)return false;
+  return b.indexOf(key)>=0||a.indexOf(b.slice(0,5))>=0;
+}
+function matchRow(raw){
+  const rn=norm(raw.name), cands=[];
+  MASTER.forEach(function(m){
+    const ev=[];
+    const nameEq=norm(m.name)===rn;
+    const nameLike=!nameEq&&rn.length>1&&(norm(m.name).indexOf(rn)>=0||rn.indexOf(norm(m.name))>=0);
+    if(nameEq)ev.push("업체명");
+    if(raw.ceo&&m.ceo&&norm(raw.ceo)===norm(m.ceo))ev.push("대표자");
+    if(raw.addr&&m.addr&&addrHit(raw.addr,m.addr))ev.push("주소지");
+    if(!nameEq&&!nameLike&&ev.length<2)return;
+    if(!ev.length&&!nameLike)return;
+    cands.push({m:m,ev:ev,nameEq:nameEq,score:ev.length+(nameLike?0.4:0)});
+  });
+  cands.sort(function(a,b){return b.score-a.score});
+  if(!cands.length)return {st:"new",cands:[]};
+  const top=cands[0];
+  if(top.ev.length>=THRESH)return {st:"auto",pick:top,cands:cands};
+  return {st:"check",pick:top,cands:cands.slice(0,3)};
+}
+
+/* ============ TAB2 조사 ============ */
+const SYNC=[["","마스터 반영 안 함"],["g3","3T 가마"],["gama","보유 가마"],["cgmp","CGMP"],
+            ["capa","총 CAPA"],["ceo","대표자명"],["addr","주소"],["desc","기업개요"]];
+const SYNCLB={g3:"3T 가마",gama:"보유 가마",cgmp:"CGMP",capa:"총 CAPA",ceo:"대표자명",addr:"주소",desc:"기업개요"};
+
+function mkItem(m,ans,done){
+  return {name:m.name,ceo:m.ceo,addr:m.addr,region:m.region,st:"auto",mid:m.id,
+          ev:["업체명","대표자"],ans:ans||{},done:!!done};
+}
+const SURVEYS=[
+ {id:"S001",purpose:"Long-list 1차 후보",creator:"도토리",date:"2025-05-12",
+  cols:[{key:"cg",label:"CGMP 보유",type:"select",options:["가능/보유","불가/미보유"],sync:"cgmp"},
+        {key:"cp",label:"총 CAPA",type:"text",sync:"capa"}],
+  items:MASTER.filter(function(m){return m.fl.indexOf("Long-list")>=0}).map(function(m){
+    const a={}; if(m.prog!=="답변대기중"){ if(m.cgmp)a.cg=m.cgmp; if(m.capa)a.cp=m.capa; }
+    return mkItem(m,a,m.prog==="완료");})},
+ {id:"S002",purpose:"우원 3T 가마 보유",creator:"도토리",date:"2025-06-30",
+  cols:[{key:"g3",label:"3T 이상 가마",type:"text",sync:"g3"},
+        {key:"gm",label:"보유 가마 사양",type:"text",sync:"gama"},
+        {key:"ok",label:"수배 가능",type:"select",options:["가능","불가","확인중"],sync:""}],
+  items:MASTER.filter(function(m){return m.fl.indexOf("우원3T가마")>=0}).map(function(m){
+    const a={};
+    if(m.prog!=="답변대기중"){ if(m.g3)a.g3=m.g3; if(m.gama)a.gm=m.gama;
+      if(m.prog==="완료")a.ok="가능"; }
+    return mkItem(m,a,m.prog==="완료");})},
+ {id:"S003",purpose:"방문 진행 대상",creator:"도토리",date:"2025-07-15",
+  cols:[{key:"pd",label:"의뢰예상제품",type:"text",sync:""},
+        {key:"rs",label:"수배사유",type:"text",sync:""}],
+  items:MASTER.filter(function(m){return m.fl.indexOf("방문진행")>=0}).map(function(m){
+    const v=RAWVISIT.filter(function(x){return x["업체ID"]===m.id})[0];
+    const a={}; if(v){ if(v["의뢰예상제품"])a.pd=v["의뢰예상제품"]; if(v["수배사유"])a.rs=v["수배사유"]; }
+    return mkItem(m,a,!!(v&&v["상태"]==="방문완료"));})}
+];
+let openSurvey=null;
+
+function itemState(it){ if(it.done)return "done";
+  const k=Object.keys(it.ans||{}).filter(function(x){return String(it.ans[x]||"").trim()});
+  return k.length?"prog":"wait"; }
+const IST={done:["완료","p-ok"],prog:["진행중","p-info"],wait:["조사대기","p-gray"]};
+
+function drawT2(){
+  let h="<thead><tr><th style='width:32px'></th><th>조사일</th><th>생성자</th><th class='ctr'>상태</th><th>조사 목적</th>"+
+    "<th class='ctr'>대상</th><th class='ctr'>완료</th><th class='ctr'>진행중</th><th class='ctr'>조사대기</th>"+
+    "<th style='min-width:150px'>진행율</th></tr></thead><tbody>";
+  SURVEYS.forEach(function(s){
+    const t=s.items.length;
+    const d=s.items.filter(function(i){return itemState(i)==="done"}).length;
+    const p=s.items.filter(function(i){return itemState(i)==="prog"}).length;
+    const w=s.items.filter(function(i){return itemState(i)==="wait"}).length;
+    const pct=t?Math.round(d/t*100):0;
+    const st=d===t&&t?["완료","p-ok"]:(d||p)?["진행중","p-info"]:["대기","p-gray"];
+    const on=openSurvey===s.id;
+    h+="<tr class='clickrow"+(on?" open":"")+"' data-s='"+s.id+"'><td class='ctr'><span class='chev'></span></td>"+
+      "<td>"+s.date+"</td><td>"+esc(s.creator)+"</td>"+
+      "<td class='ctr'><span class='pill "+st[1]+"'>"+st[0]+"</span></td>"+
+      "<td><span class='nm'>"+esc(s.purpose)+"</span> <span class='dim'>"+s.id+"</span></td>"+
+      "<td class='ctr'>"+t+"</td><td class='ctr'><b>"+d+"</b></td><td class='ctr'>"+p+"</td><td class='ctr'>"+w+"</td>"+
+      "<td><div class='prog'><span class='track'><span class='fillb' style='width:"+pct+"%'></span></span><b>"+pct+"%</b></div></td></tr>";
+    if(on) h+="<tr><td class='detail-td' colspan='10'>"+panel(s)+"</td></tr>";
+  });
+  h+="</tbody>";
+  const t=document.getElementById("t2"); t.innerHTML=h;
+  document.getElementById("b2").textContent=SURVEYS.length;
+  t.querySelectorAll("[data-s]").forEach(function(tr){tr.onclick=function(e){
+    if(e.target.closest(".panel"))return;
+    openSurvey=(openSurvey===tr.dataset.s?null:tr.dataset.s); drawT2();
+  }});
+  bindPanel();
+}
+
+function dupPill(it){
+  if(!it.dup)return dim("—");
+  if(it.dup==="have")return "<span class='pill p-ok'>기보유</span>";
+  if(it.dup==="stale")return "<span class='pill p-warn'>재확인</span>";
+  return "<span class='pill p-info'>신규</span>";
+}
+function panel(s){
+  const chk=s.items.filter(function(i){return i.st==="check"}).length;
+  const dh=s.items.filter(function(i){return i.dup==="have"}).length;
+  const ds=s.items.filter(function(i){return i.dup==="stale"}).length;
+  const dn=s.items.filter(function(i){return i.dup==="new"}).length;
+  let h="<div class='panel'><div class='pbar'><span class='lb'>"+esc(s.purpose)+"</span>"+
+    "<span class='rule'>매칭 기준 · 업체명 · 대표자 · 주소지 중</span>"+
+    "<span class='seg'><button data-th='2' aria-pressed='"+(THRESH===2)+"'>2개 이상</button>"+
+    "<button data-th='3' aria-pressed='"+(THRESH===3)+"'>3개 모두</button></span>"+
+    "<span class='spacer'></span>"+
+    "<button class='btn' data-addcol='"+s.id+"'>＋ 조사항목 추가</button>"+
+    "<button class='btn' data-tovisit='"+s.id+"'>선택 업체 방문예정처로 이관</button></div>";
+  if(dh+ds+dn)h+="<div class='reuse'>중복 점검 · 기보유 <b>"+dh+"</b> · 재확인 <b>"+ds+"</b> · 신규 <b>"+dn+
+    "</b><span class='dim'> — 기보유 행은 흐리게 표시되며 답변이 미리 채워져 있습니다</span></div>";
+  h+="<div class='wrap'><table class='nw'><thead><tr>"+
+    "<th class='ctr' style='width:34px'></th><th>업체ID</th><th>기업명</th><th class='ctr'>매칭</th>"+
+    "<th class='ctr'>기보유</th><th>매칭 근거</th>"+
+    "<th>대표자</th><th>주소지</th>";
+  s.cols.forEach(function(c){h+="<th class='colhd'>"+esc(c.label)+(c.sync?" ↺":"")+"</th>"});
+  h+="<th class='ctr'>상태</th><th class='ctr'>조치</th></tr></thead><tbody>";
+  s.items.forEach(function(it,i){
+    const m=it.mid?byId(it.mid):null;
+    const stp=it.st==="auto"?"<span class='pill p-ok'>연결됨</span>":
+              it.st==="check"?"<span class='pill p-warn'>확인 필요</span>":"<span class='pill p-info'>신규</span>";
+    const is=itemState(it);
+    h+="<tr"+(it.skip?" style='opacity:.5'":"")+"><td class='ctr'><input type='checkbox' data-sel='"+i+"'"+(it.mid?"":" disabled")+"></td>"+
+      "<td class='dim'>"+(m?m.id:"—")+"</td><td><span class='nm'>"+esc(it.name)+"</span></td>"+
+      "<td class='ctr'>"+stp+"</td>"+
+      "<td class='ctr'>"+dupPill(it)+"</td>"+
+      "<td><span class='ev'>"+(it.ev&&it.ev.length?it.ev.map(function(e){return "<span>"+esc(e)+" ✓</span>"}).join(""):"<span class='x'>근거 부족</span>")+"</span></td>"+
+      "<td>"+((it.ceo||(m&&m.ceo))?esc(it.ceo||m.ceo):dim())+"</td>"+
+      "<td class='wide'>"+((it.addr||(m&&m.addr))?esc(it.addr||m.addr):dim())+"</td>";
+    s.cols.forEach(function(c){
+      const v=(it.ans||{})[c.key]||"";
+      if(c.type==="select"){
+        let o="<option value=''>—</option>";
+        (c.options||[]).forEach(function(x){o+="<option"+(x===v?" selected":"")+">"+esc(x)+"</option>"});
+        h+="<td><select class='ansin' data-a='"+i+"' data-k='"+c.key+"'>"+o+"</select></td>";
+      }else{
+        h+="<td><input class='ansin' data-a='"+i+"' data-k='"+c.key+"' value='"+esc(v)+"' placeholder='—'></td>";
+      }
+    });
+    h+="<td class='ctr'><span class='pill "+IST[is][1]+"'>"+IST[is][0]+"</span></td>"+
+      "<td class='ctr'>"+(it.st==="check"?"<button class='btn sm' data-fix='"+i+"'>후보 선택</button>":
+        it.st==="new"?"<button class='btn sm' data-add='"+i+"'>마스터 등록</button>":
+        it.done?"<button class='btn sm' data-undo='"+i+"'>완료 해제</button>":
+        "<button class='btn sm pri' data-done='"+i+"'>완료 처리</button>")+"</td></tr>";
+  });
+  h+="</tbody></table></div>";
+  if(chk)h+="<div class='warnbox'>확인 필요 "+chk+"건은 일치 항목이 기준에 못 미칩니다. 후보를 직접 선택하거나 신규로 등록하세요.</div>";
+  h+="<div class='tip'>답변을 하나라도 입력하면 <b>진행중</b>, 아무것도 없으면 <b>조사대기</b>로 자동 갱신됩니다. "+
+     "<b>완료 처리</b>를 누르면 ↺ 표시된 항목이 마스터에 반영되고 갱신 이력이 남습니다.</div></div>";
+  return h;
+}
+
+function bindPanel(){
+  const w=document.getElementById("t2");
+  const s=SURVEYS.filter(function(x){return x.id===openSurvey})[0]; if(!s)return;
+  w.querySelectorAll("[data-th]").forEach(function(b){b.onclick=function(e){e.stopPropagation();
+    THRESH=+b.dataset.th; rescore(s); drawT2(); toast("매칭 기준 변경 — 일치 항목 "+THRESH+"개 이상")}});
+  w.querySelectorAll("[data-a]").forEach(function(el){
+    const h=function(){ const it=s.items[+el.dataset.a];
+      it.ans=it.ans||{}; it.ans[el.dataset.k]=el.value; refreshStates(s); };
+    el.addEventListener("change",h);
+    el.addEventListener("click",function(e){e.stopPropagation()});
+  });
+  w.querySelectorAll("[data-sel]").forEach(function(c){c.addEventListener("click",function(e){e.stopPropagation()})});
+  w.querySelectorAll("[data-fix]").forEach(function(b){b.onclick=function(e){e.stopPropagation();openCand(s,+b.dataset.fix)}});
+  w.querySelectorAll("[data-add]").forEach(function(b){b.onclick=function(e){e.stopPropagation();addMaster(s,+b.dataset.add)}});
+  w.querySelectorAll("[data-done]").forEach(function(b){b.onclick=function(e){e.stopPropagation();doneItem(s,+b.dataset.done)}});
+  w.querySelectorAll("[data-undo]").forEach(function(b){b.onclick=function(e){e.stopPropagation();
+    s.items[+b.dataset.undo].done=false; drawT2()}});
+  const ac=w.querySelector("[data-addcol]"); if(ac)ac.onclick=function(e){e.stopPropagation();openAddCol(s)};
+  const tv=w.querySelector("[data-tovisit]"); if(tv)tv.onclick=function(e){e.stopPropagation();
+    const sel=[]; w.querySelectorAll("[data-sel]:checked").forEach(function(c){sel.push(+c.dataset.sel)});
+    if(!sel.length){toast("이관할 업체를 먼저 선택하세요");return}
+    toVisit(s,sel);
+  };
+}
+function refreshStates(s){
+  /* 상태 뱃지와 상단 집계만 다시 그린다 (입력 포커스 유지를 위해 전체 재렌더 대신 부분 갱신) */
+  const rows=document.querySelectorAll("#t2 .panel tbody tr");
+  s.items.forEach(function(it,i){
+    const tr=rows[i]; if(!tr)return;
+    const tds=tr.querySelectorAll("td");
+    const is=itemState(it);
+    tds[tds.length-2].innerHTML="<span class='pill "+IST[is][1]+"'>"+IST[is][0]+"</span>";
+  });
+  const t=s.items.length;
+  const d=s.items.filter(function(i){return itemState(i)==="done"}).length;
+  const p=s.items.filter(function(i){return itemState(i)==="prog"}).length;
+  const wt=s.items.filter(function(i){return itemState(i)==="wait"}).length;
+  const hd=document.querySelector("#t2 tr[data-s='"+s.id+"']");
+  if(hd){const c=hd.querySelectorAll("td");
+    c[5].textContent=t;c[6].innerHTML="<b>"+d+"</b>";c[7].textContent=p;c[8].textContent=wt;
+    const pct=t?Math.round(d/t*100):0;
+    c[9].innerHTML="<div class='prog'><span class='track'><span class='fillb' style='width:"+pct+"%'></span></span><b>"+pct+"%</b></div>";
+  }
+}
+function rescore(s){ s.items.forEach(function(it){ if(it._raw){
+  const r=matchRow(it._raw); it.st=r.st; it.mid=r.pick?r.pick.m.id:null;
+  it.ev=r.pick?r.pick.ev:[]; it._c=r.cands; }}); }
+
+function doneItem(s,i){
+  const it=s.items[i]; if(!it.mid){toast("마스터에 연결된 업체만 완료 처리할 수 있습니다");return}
+  const m=byId(it.mid); const changed=[];
+  s.cols.forEach(function(c){
+    const v=String((it.ans||{})[c.key]||"").trim(); if(!v)return;
+    if(c.dictK){                                  // 역량 항목 사전으로 적재
+      const cur=getVal(m.id,c.dictK);
+      if(!cur||cur.v!==v||!isFresh(cur)){
+        pushHist(m,DMAP[c.dictK].n,cur?cur.v:"",v,s.id+" "+s.purpose);
+        setVal(m.id,c.dictK,v,"조사 "+s.id,"B");
+        changed.push(DMAP[c.dictK].n);
+      }
+    }
+    if(!c.sync)return;
+    const before=m[c.sync]||"";
+    if(String(before)!==v){ pushHist(m,SYNCLB[c.sync]||c.label,before,v,s.id+" "+s.purpose);
+      m[c.sync]=v; changed.push(SYNCLB[c.sync]||c.label); }
+  });
+  if(m.prog!=="완료"){ pushHist(m,"진행상황",m.prog,"완료",s.id+" "+s.purpose); m.prog="완료"; changed.push("진행상황"); }
+  if(m.surveys.indexOf(s.purpose)<0)m.surveys.push(s.purpose);
+  it.done=true;
+  if(s.dictCodes&&s.dictCodes.length){const d=dupOf(m.id,s.dictCodes);it.dup=d.st;it.skip=(d.st==="have")}
+  drawT2(); drawT1(); drawC1();
+  toast(esc(m.name)+" 완료 처리 · 갱신 "+(changed.length?esc(changed.join(", ")):"변경 없음"));
+}
+
+/* ============ 새 조사 업로드 ============ */
+const SAMPLE="업체명\t대표자\t주소지\t비고\n(주)누리랩\t최수아\t서울 강서구\t5톤 1대\n가온화장품\t오나윤\t인천 남동구\t3톤 2대\n라온랩(주)\t신현우\t\t3톤 1대\n단아케미칼\t\t\t가마 확인필요\n마루코스텍\t\t경기 평택시\t6톤 2대\n한울코스텍\t김성진\t충북 진천군\t3톤 1대\n우원정밀화학\t박정수\t경남 김해시\t3톤 2대";
+let NEWCOLS=[];
+function colRowHTML(i,c){
+  let o=""; SYNC.forEach(function(s){o+="<option value='"+s[0]+"'"+(s[0]===c.sync?" selected":"")+">"+s[1]+"</option>"});
+  return "<div class='colrow'><input type='text' data-cl='"+i+"' value='"+esc(c.label)+"' placeholder='조사항목 이름'>"+
+    "<select data-ct='"+i+"'><option value='text'"+(c.type==="text"?" selected":"")+">자유입력</option>"+
+    "<option value='select'"+(c.type==="select"?" selected":"")+">선택형</option></select>"+
+    "<select class='sync' data-cs='"+i+"'>"+o+"</select>"+
+    "<button class='x' data-cx='"+i+"'>×</button></div>";
+}
+function drawCols(){
+  const w=document.getElementById("colbox"); if(!w)return;
+  w.innerHTML=NEWCOLS.map(function(c,i){return colRowHTML(i,c)}).join("")||
+    "<div class='tip'>추가 항목이 없습니다. 마스터 정보만으로 조사합니다.</div>";
+  w.querySelectorAll("[data-cl]").forEach(function(e){e.oninput=function(){NEWCOLS[+e.dataset.cl].label=e.value}});
+  w.querySelectorAll("[data-ct]").forEach(function(e){e.onchange=function(){NEWCOLS[+e.dataset.ct].type=e.value}});
+  w.querySelectorAll("[data-cs]").forEach(function(e){e.onchange=function(){NEWCOLS[+e.dataset.cs].sync=e.value}});
+  w.querySelectorAll("[data-cx]").forEach(function(e){e.onclick=function(){NEWCOLS.splice(+e.dataset.cx,1);drawCols()}});
+}
+function openUpload(){
+  NEWCOLS=[{label:"3T 이상 가마",type:"text",sync:"g3"},
+           {label:"수배 가능",type:"select",sync:""}];
+  const s=document.getElementById("sheet");
+  s.innerHTML="<div class='sh-h'><div class='k'>새 조사</div><h3>원본 업체 리스트 업로드</h3>"+
+   "<p>붙여넣은 리스트를 마스터 "+MASTER.length+"개사와 대조합니다.</p></div>"+
+   "<div class='sh-b'><label>조사 목적</label><input type='text' id='pp' value='3톤 우원 가마'>"+
+   "<label>원본 리스트 (엑셀에서 복사 → 붙여넣기)</label><textarea id='raw'>"+esc(SAMPLE)+"</textarea>"+
+   "<div class='tip'>첫 줄은 헤더입니다. 업체명 · 대표자 · 주소지 열을 자동으로 찾습니다.</div>"+
+   "<label>추가 조사 항목 <span style='text-transform:none;font-weight:500'>(마스터에 없는 항목)</span></label>"+
+   "<div id='colbox'></div><button class='btn' id='addcol' style='margin-top:6px'>＋ 항목 추가</button>"+
+   "<div class='tip'>세 번째 칸에서 <b>마스터 반영 필드</b>를 고르면, 완료 처리 시 그 값이 마스터에 기록됩니다.</div>"+
+   "<div class='warnbox'>마스터에 사업자번호가 없어 <b>업체명 · 대표자 · 주소지</b> 중 2개 이상 일치로 판정합니다. 대표자명 12건이 공란이라 일부는 확인 필요로 떨어집니다.</div></div>"+
+   "<div class='sh-f'><button class='btn' id='cx'>취소</button><button class='btn pri' id='run'>매칭 실행</button></div>";
+  document.getElementById("scrim").classList.add("on");
+  drawCols();
+  document.getElementById("addcol").onclick=function(){NEWCOLS.push({label:"",type:"text",sync:""});drawCols()};
+  document.getElementById("cx").onclick=close;
+  document.getElementById("run").onclick=runMatch;
+}
+document.getElementById("newSurvey").onclick=openUpload;
+
+function runMatch(){
+  const purpose=document.getElementById("pp").value.trim()||"이름 없는 조사";
+  const lines=document.getElementById("raw").value.split("\n").filter(function(l){return l.trim()});
+  if(lines.length<2){toast("리스트가 비어 있습니다");return}
+  const head=lines[0].split(/\t|,/).map(function(x){return x.trim()});
+  const ix=function(keys){for(let i=0;i<head.length;i++)for(const k of keys)if(head[i].indexOf(k)>=0)return i;return -1};
+  const iN=ix(["업체","기업","상호","회사"]),iC=ix(["대표"]),iA=ix(["주소","소재","지역"]),iM=ix(["비고","설비","가마"]);
+  const cols=NEWCOLS.filter(function(c){return c.label.trim()}).map(function(c,i){
+    return {key:"x"+i,label:c.label.trim(),type:c.type,sync:c.sync,
+            options:c.type==="select"?["가능","불가","확인중"]:[]};});
+  const items=[];
+  lines.slice(1).forEach(function(l){
+    const c=l.split(/\t|,/).map(function(x){return x.trim()});
+    const raw={name:c[iN>=0?iN:0]||"",ceo:iC>=0?c[iC]:"",addr:iA>=0?c[iA]:""};
+    if(!raw.name)return;
+    const r=matchRow(raw);
+    const ans={};
+    if(iM>=0&&c[iM]&&cols.length)ans[cols[0].key]=c[iM];
+    items.push({name:raw.name,ceo:raw.ceo,addr:raw.addr,st:r.st,mid:r.pick?r.pick.m.id:null,
+      ev:r.pick?r.pick.ev:[],_raw:raw,_c:r.cands,ans:ans,done:false});
+  });
+  const id="S"+String(SURVEYS.length+1).padStart(3,"0");
+  SURVEYS.unshift({id:id,purpose:purpose,creator:"도토리",date:iso(TODAY),cols:cols,items:items});
+  items.forEach(function(it){ if(it.mid){const m=byId(it.mid);
+    if(m&&m.surveys.indexOf(purpose)<0)m.surveys.push(purpose);}});
+  openSurvey=id; close(); drawT2(); drawC1(); drawT1();
+  const a=items.filter(function(i){return i.st==="auto"}).length,
+        ck=items.filter(function(i){return i.st==="check"}).length,
+        n=items.filter(function(i){return i.st==="new"}).length;
+  toast(esc(purpose)+" · 총 "+items.length+"건 → 연결 "+a+" / 확인 "+ck+" / 신규 "+n);
+}
+
+/* 기존 조사에 항목 추가 */
+function openAddCol(s){
+  NEWCOLS=[{label:"",type:"text",sync:""}];
+  document.getElementById("sheet").innerHTML=
+   "<div class='sh-h'><div class='k'>"+s.id+"</div><h3>조사항목 추가</h3><p>"+esc(s.purpose)+"</p></div>"+
+   "<div class='sh-b'><div id='colbox'></div><button class='btn' id='addcol' style='margin-top:6px'>＋ 항목 추가</button>"+
+   "<div class='tip'>추가한 항목은 이 조사의 모든 업체 행에 빈 칸으로 생깁니다.</div></div>"+
+   "<div class='sh-f'><button class='btn' id='cx4'>취소</button><button class='btn pri' id='ok4'>추가</button></div>";
+  document.getElementById("scrim").classList.add("on");
+  drawCols();
+  document.getElementById("addcol").onclick=function(){NEWCOLS.push({label:"",type:"text",sync:""});drawCols()};
+  document.getElementById("cx4").onclick=close;
+  document.getElementById("ok4").onclick=function(){
+    let n=0;
+    NEWCOLS.filter(function(c){return c.label.trim()}).forEach(function(c){
+      s.cols.push({key:"x"+Date.now()+(n++),label:c.label.trim(),type:c.type,sync:c.sync,
+        options:c.type==="select"?["가능","불가","확인중"]:[]});});
+    close(); drawT2(); toast(n?(n+"개 항목 추가"):"추가된 항목이 없습니다");
+  };
+}
+
+/* 후보 선택 / 신규 등록 */
+function openCand(s,idx){
+  const it=s.items[idx];
+  let h="<div class='sh-h'><div class='k'>확인 필요</div><h3>"+esc(it.name)+"</h3>"+
+    "<p>일치 항목이 기준에 못 미칩니다. 동일 업체를 직접 선택하세요.</p></div><div class='sh-b'><div class='cand'>";
+  (it._c||[]).forEach(function(c,i){
+    h+="<div class='crow'><div class='g'><b>"+esc(c.m.name)+"</b><div>"+c.m.id+" · "+
+      esc(c.m.ceo||"대표자 미기재")+" · "+esc(c.m.addr||c.m.region).slice(0,28)+
+      " · 일치 "+(c.ev.length?c.ev.join("/"):"기업명 유사")+"</div></div>"+
+      "<button class='btn pri' data-pick='"+i+"'>이 업체</button></div>";
+  });
+  if(!(it._c||[]).length)h+="<div class='crow'><div class='g'><b>후보 없음</b><div>마스터에 유사한 기업명이 없습니다</div></div></div>";
+  h+="</div><div class='warnbox'>같은 업체가 아니면 신규로 등록하세요. 잘못 연결하면 두 조사의 이력이 한 업체에 섞입니다.</div></div>"+
+    "<div class='sh-f'><button class='btn' id='cx2'>취소</button><button class='btn' id='asNew'>신규로 등록</button></div>";
+  document.getElementById("sheet").innerHTML=h;
+  document.getElementById("scrim").classList.add("on");
+  document.getElementById("cx2").onclick=close;
+  document.getElementById("asNew").onclick=function(){close();addMaster(s,idx)};
+  document.getElementById("sheet").querySelectorAll("[data-pick]").forEach(function(b){b.onclick=function(){
+    const c=it._c[+b.dataset.pick];
+    it.mid=c.m.id; it.st="auto"; it.ev=c.ev.length?c.ev:["수동 확인"];
+    if(c.m.surveys.indexOf(s.purpose)<0)c.m.surveys.push(s.purpose);
+    close(); drawT2(); drawC1(); drawT1();
+    toast(esc(it.name)+" → "+c.m.id+" "+esc(c.m.name)+" 연결");
+  }});
+}
+function addMaster(s,idx){
+  const it=s.items[idx];
+  const n=MASTER.length+1, id="C"+String(n).padStart(3,"0");
+  const m={id:id,name:it.name,ceo:it.ceo||"",region:(it.addr||"").split(" ")[0]||"",addr:it.addr||"",
+    owner:"미지정",prog:"답변대기중",fl:[],surveys:[s.purpose],est:"",site:"",
+    desc:"조사 "+s.id+" 신규 등록",cgmp:"",gama:"",g3:"",capa:"",qstat:"",hist:[]};
+  pushHist(m,"신규 등록","","마스터 등록",s.id+" "+s.purpose);
+  MASTER.push(m);
+  it.mid=id; it.st="auto"; it.ev=["신규 등록"];
+  drawT2(); drawC1(); drawT1();
+  toast(esc(it.name)+" → 마스터 "+id+"로 신규 등록");
+}
+
+/* ============ TAB3 방문예정처 (v3 구조) ============ */
+const VST={
+ nego:{label:"일정협의중",bar:"#5A7BC4",bg:"rgba(90,123,196,.16)",fg:"#31509B",tint:"#EFF3FC"},
+ plan:{label:"방문예정",bar:"#E8A33D",bg:"rgba(232,163,61,.18)",fg:"#8A5300",tint:"#FFF7E6"},
+ done:{label:"방문완료",bar:"#2FA86A",bg:"rgba(47,168,106,.16)",fg:"#1C7A4D",tint:"#EEF8F1"},
+ wait:{label:"Capa회신대기중",bar:"#EE6A33",bg:"rgba(238,106,51,.16)",fg:"#B23A0F",tint:"#FFF0E8"},
+ reg:{label:"등록완료",bar:"#8B93A6",bg:"rgba(139,147,166,.18)",fg:"#59617A",tint:"#F3F4F7"},
+ cxl:{label:"방문취소",bar:"#C3C8D4",bg:"rgba(195,200,212,.34)",fg:"#59617A",tint:"#F3F4F7"},
+ ng:{label:"등록불가",bar:"#D64B3F",bg:"rgba(214,75,63,.14)",fg:"#B03428",tint:"#FCEFEE"},
+ etc:{label:"기타",bar:"#9B62CF",bg:"rgba(155,98,207,.15)",fg:"#6E2FA0",tint:"#F5F1FB"}
+};
+const YR=2025;
+function tk(m,d){return m*100+d}
+function fmtk(k){return Math.floor(k/100)+"/"+(k%100)}
+function nextk(k){const d=new Date(YR,Math.floor(k/100)-1,k%100);d.setDate(d.getDate()+1);return tk(d.getMonth()+1,d.getDate())}
+function rangeKeys(m1,d1,m2,d2){
+  const out=[];let c=new Date(YR,m1-1,d1),e=new Date(YR,m2-1,d2);
+  let guard=0; while(c<=e&&guard++<120){out.push(tk(c.getMonth()+1,c.getDate()));c.setDate(c.getDate()+1)}
+  return out;
+}
+/* 자유 텍스트에서 날짜 추출: "7/23~24", "7/27~7/28", "08월 13일", "7/20 이후" */
+function parseDates(txt){
+  if(!txt)return [];
+  const s=String(txt).replace(/\s/g,"");
+  const out=new Set();
+  let m;
+  const reRange=/(\d{1,2})[\/월](\d{1,2})일?~(?:(\d{1,2})[\/월])?(\d{1,2})일?/g;
+  while((m=reRange.exec(s))){
+    const m1=+m[1],d1=+m[2],m2=m[3]?+m[3]:+m[1],d2=+m[4];
+    rangeKeys(m1,d1,m2,d2).forEach(function(k){out.add(k)});
+  }
+  const reOne=/(\d{1,2})[\/월](\d{1,2})일?/g;
+  while((m=reOne.exec(s))){ out.add(tk(+m[1],+m[2])); }
+  if(/이후/.test(s)&&out.size){
+    const arr=Array.from(out).sort(function(a,b){return a-b});
+    let k=arr[arr.length-1];
+    for(let i=0;i<10;i++){k=nextk(k);out.add(k)}
+  }
+  return Array.from(out).sort(function(a,b){return a-b});
+}
+function interK(a,b){const s=new Set(b);return a.filter(function(x){return s.has(x)})}
+function compressK(keys){
+  if(!keys.length)return "";
+  const p=[];let st=keys[0],pv=keys[0];
+  for(let i=1;i<=keys.length;i++){const k=keys[i];
+    if(k!==undefined&&k===nextk(pv)){pv=k;continue}
+    p.push(st===pv?fmtk(st):fmtk(st)+"~"+fmtk(pv));st=k;pv=k}
+  return p.join(", ");
+}
+/* 이동 추정 (세종 전의면 기준) */
+const CITY=[["안산",145,105],["부천",130,100],["수원",105,80],["화성",110,85],["평택",75,62],["남원",190,135],
+ ["김포",165,120],["인천",150,110],["청주",30,32],["음성",55,48],["천안",30,32],["아산",35,35],["대전",45,40],
+ ["구미",145,112],["김해",260,185],["파주",180,135],["시흥",140,103],["군포",125,93],["용인",100,78],
+ ["성남",115,88],["오산",85,68],["안성",60,52],["이천",110,85],["진천",45,40],["증평",45,42],["제천",110,90],
+ ["원주",130,100],["대구",180,135],["부산",280,195],["양산",265,188],["전주",110,85],["익산",95,78],
+ ["논산",45,42],["공주",25,28],["세종",12,18],["당진",70,60],["홍성",70,62],["예산",55,50],["서산",85,70],
+ ["보령",90,75],["광주",180,135],["서울",130,100],["고양",165,120],["의정부",165,122],["춘천",160,120]];
+const PROV=[["경기",120,90],["인천",150,110],["서울",130,100],["충북",50,45],["충남",45,42],["대전",45,40],
+ ["세종",12,18],["경북",160,120],["경남",250,180],["부산",280,195],["대구",180,135],["전북",110,85],
+ ["전남",200,150],["광주",180,135],["강원",150,115],["울산",270,190],["제주",0,0]];
+function tripOf(addr){
+  const a=String(addr||"");
+  for(const c of CITY) if(a.indexOf(c[0])>=0) return {km:c[1],min:c[2]};
+  for(const p of PROV) if(a.indexOf(p[0])>=0) return {km:p[1],min:p[2]};
+  return null;
+}
+const BUF=20;
+function calcTrip(addr,hhmm){
+  const t=tripOf(addr); if(!t||!hhmm||!t.min)return null;
+  const p=hhmm.split(":"); let mm=(+p[0])*60+(+p[1])-t.min-BUF,day="";
+  if(mm<0){mm+=1440;day="전일 "}
+  const dur=(t.min>=60?Math.floor(t.min/60)+"시간 "+(t.min%60?(t.min%60)+"분":""):t.min+"분").trim();
+  return {out:day+String(Math.floor(mm/60)).padStart(2,"0")+":"+String(mm%60).padStart(2,"0"),km:t.km,dur:dur};
+}
+const VCOLS=[
+ {g:"fix",k:"no",t:"No",w:40,a:"ctr"},
+ {g:"fix",k:"co",t:"업체명",w:180},
+ {g:"fix",k:"st",t:"진행 상태",w:134,a:"ctr"},
+ {g:"fix",k:"evc",t:"등록평가",w:94,a:"ctr"},
+ {g:"fix",k:"fix",t:"확정 방문일",w:100,a:"ctr"},
+ {g:"fix",k:"trip",t:"방문 예정시간 · 이동",w:184},
+ {g:"fix",k:"dd",t:"D-day",w:62,a:"ctr"},
+ {g:"fix",k:"memo",t:"최근 비고",w:230,a:"wide"},
+ {g:"co",k:"biz",t:"사업자번호",w:112},
+ {g:"co",k:"kind",t:"구분",w:96,a:"ctr"},
+ {g:"co",k:"addr",t:"주소지",w:250,a:"wide"},
+ {g:"ct",k:"site",t:"홈페이지",w:158},
+ {g:"ct",k:"link",t:"소개자료",w:150},
+ {g:"ct",k:"mgr",t:"담당자",w:96},
+ {g:"ct",k:"pos",t:"직위",w:94},
+ {g:"ct",k:"tel",t:"연락처",w:124},
+ {g:"ct",k:"mail",t:"메일",w:208},
+ {g:"sch",k:"vend",t:"업체 방문가능일",w:158},
+ {g:"sch",k:"coop",t:"협생 가능일",w:170},
+ {g:"sch",k:"qa",t:"품보 가능일",w:170},
+ {g:"sch",k:"both",t:"부서 공통",w:122},
+ {g:"sch",k:"final",t:"최종 공통 가능일",w:168},
+ {g:"sel",k:"picker",t:"선정주체",w:118},
+ {g:"sel",k:"reason",t:"선정 사유",w:280,a:"wide"},
+ {g:"vis",k:"vdone",t:"방문완료일",w:100,a:"ctr"},
+ {g:"vis",k:"att",t:"참석자",w:160},
+ {g:"vis",k:"res",t:"방문 결과",w:310,a:"wide"},
+ {g:"vis",k:"cq",t:"Capa 요청일",w:106,a:"ctr"},
+ {g:"vis",k:"cd",t:"회신 기한",w:106,a:"ctr"},
+ {g:"log",k:"ch",t:"상태 변경일",w:100,a:"ctr"},
+ {g:"log",k:"by",t:"최종 수정자",w:106},
+ {g:"log",k:"note",t:"변경 메모",w:230,a:"wide"}
+];
+const VGROUPS=[{k:"fix",t:"고정",lock:true},{k:"co",t:"① 업체정보"},{k:"ct",t:"② 연락 · 자료",off:true},
+ {k:"sch",t:"③ 일정협의"},{k:"sel",t:"④ 선정"},{k:"vis",t:"⑤ 방문 결과"},{k:"log",t:"⑥ 이력"}];
+const VHIDE={}; VGROUPS.forEach(function(g){if(g.off)VHIDE[g.k]=true});
+let vf="all";
+
+const VISITS=[];
+(function seedVisits(){
+  const map={"방문완료":"done","재방문예정":"plan","확정":"plan","일정협의":"nego","보류":"etc","요청접수":"nego"};
+  RAWVISIT.forEach(function(r){
+    const tm=String(r["시간(출발포함)"]||"").match(/(\d{1,2})시(반)?/);
+    const time=tm?String(tm[1]).padStart(2,"0")+":"+(tm[2]?"30":"00"):"";
+    const m=byId(r["업체ID"]);
+    const who=String(r["업체 담당자"]||"").trim().split(/\s+/);
+    const st=map[r["상태"]]||"nego";
+    VISITS.push({mid:r["업체ID"],co:r["상호명"],st:st,
+      biz:"",kind:(m&&m.cgmp&&m.cgmp.indexOf("가능")>=0)?"OEM/ODM":"부자재·설비",
+      addr:r["소재지"]||(m?m.addr:""),site:m?m.site:"",link:r["소개자료 링크"],
+      mgr:who[0]||"",pos:who.slice(1).join(" "),tel:r["연락처"],mail:r["E-MAIL"],
+      vend:r["업체 요청일"],coop:r["협/생팀 가능일"],qa:r["품질보증팀 가능일"],
+      fix:(r["확정 방문일"]||"").slice(0,10),time:time,
+      picker:r["수배주체"]?r["수배주체"]+"팀":"",reason:r["수배사유"],
+      vdone:st==="done"?(r["확정 방문일"]||"").slice(0,10):"",
+      att:r["방문자"],res:r["방문결과/후속조치"],cq:"",cd:"",
+      memo:(r["의뢰예상제품"]||"")+(r["방문결과/후속조치"]?" · "+String(r["방문결과/후속조치"]).slice(0,26):""),
+      ch:"",by:"협/생팀",note:"기존 방문일정관리 이관",ev:r["상태"]==="방문완료"});
+  });
+})();
+function ddayOf(v){
+  if(!v.fix)return {t:"—",c:""};
+  const d=new Date(v.fix+"T00:00:00"), diff=Math.round((d-TODAY)/86400000);
+  if(diff<-30)return {t:"지난 방문",c:""};
+  if(diff<0)return {t:"+"+(-diff),c:""};
+  if(diff===0)return {t:"오늘",c:"over"};
+  return {t:"D-"+diff,c:diff<=3?"need":""};
+}
+function vcell(v,c,i){
+  switch(c.k){
+    case "no":return i+1;
+    case "co":return "<div class='co'><span class='bar' style='background:"+VST[v.st].bar+"'></span><span class='cnm'>"+esc(v.co)+"</span></div>";
+    case "st":{let o="";Object.keys(VST).forEach(function(k){o+="<option value='"+k+"'"+(k===v.st?" selected":"")+">"+VST[k].label+"</option>"});
+      return "<span class='sel'><select data-vs='"+i+"' style='background:"+VST[v.st].bg+";color:"+VST[v.st].fg+"'>"+o+"</select></span>";}
+    case "evc":return v.ev?"<span class='pill p-ok'>연결됨</span>":"<button class='btn sm' data-ve='"+i+"'>평가 생성</button>";
+    case "dd":{const d=ddayOf(v);return d.t==="—"?dim("—"):"<span class='"+d.c+"'>"+d.t+"</span>";}
+    case "trip":return !v.fix?"<div class='trip'><span class='none'>방문일 확정 후</span></div>"
+      :"<div class='trip'><input type='time' value='"+(v.time||"")+"' data-vt='"+i+"'><span class='calc'></span></div>";
+    case "vend":return v.vend?"<div class='days'>"+esc(v.vend)+"</div>":dim("미접수");
+    case "coop":return "<div class='days dept'><b class='b-c'>협생</b><span>"+(v.coop?esc(v.coop):"<span class='dim'>미입력</span>")+"</span></div>";
+    case "qa":return "<div class='days dept'><b class='b-q'>품보</b><span>"+(v.qa?esc(v.qa):"<span class='dim'>미입력</span>")+"</span></div>";
+    case "both":{const b=interK(parseDates(v.coop),parseDates(v.qa));
+      if(!v.coop&&!v.qa)return dim("—");
+      return b.length?"<span class='res'>"+compressK(b)+"</span>":"<span class='res bad'>없음</span>";}
+    case "final":{
+      const cp=parseDates(v.coop),qq=parseDates(v.qa),vd=parseDates(v.vend);
+      if(!cp.length&&!qq.length)return dim("—");
+      const b=interK(cp,qq);
+      if(!b.length)return "<span class='res bad'>부서 일정 불일치<small>협생·품보 재조정</small></span>";
+      const f=vd.length?interK(b,vd):b;
+      if(!f.length)return "<span class='res warn'>업체 일정 불일치<small>업체에 재요청</small></span>";
+      const settled=["done","reg","ng","cxl","wait"].indexOf(v.st)>=0;
+      return "<span class='res"+(settled?"":" hit")+"'>"+compressK(f)+"<small>"+(settled?"":f.length+"일 가능")+"</small></span>";}
+    case "mail":return v.mail?"<a href='#'>"+esc(String(v.mail).split(";")[0])+"</a>":dim();
+    case "site":return v.site?"<a href='#'>"+esc(String(v.site).replace(/^https?:\/\//,"").slice(0,26))+"</a>":dim();
+    case "link":return v.link?"<a href='#'>"+esc(v.link)+"</a>":dim("미수령");
+    case "cd":return v.cd?"<span class='over'>"+esc(v.cd)+"</span>":dim();
+    case "reason":return v.reason?esc(v.reason):dim();
+    case "ch":return v.ch?esc(v.ch):dim();
+    default:{const x=v[c.k];return (x===undefined||x===null||x==="")?dim():esc(x);}
+  }
+}
+function paintTrips(){
+  document.querySelectorAll("#t3 .trip input").forEach(function(inp){
+    const v=VISITS[+inp.dataset.vt], o=inp.parentNode.querySelector(".calc");
+    const t=calcTrip(v.addr,inp.value);
+    o.innerHTML=t?(t.km+"km · "+t.dur+" → <b>"+t.out+" 출발</b>"):"<span class='dim'>이동 정보 없음</span>";
+  });
+}
+function drawT3(){
+  const cols=VCOLS.filter(function(c){return !VHIDE[c.g]});
+  const rows=VISITS.filter(function(v){return vf==="all"||v.st===vf});
+  let h="<thead><tr class='g'>";
+  VGROUPS.forEach(function(g){if(VHIDE[g.k])return;
+    const n=cols.filter(function(c){return c.g===g.k}).length; if(!n)return;
+    h+="<th colspan='"+n+"'>"+(g.k==="fix"?"":g.t)+"</th>";});
+  h+="</tr><tr class='c'>";
+  let l=0;
+  cols.forEach(function(c,i){const sk=(c.g==="fix"&&i<2);
+    h+="<th class='"+(sk?"sk":"")+(sk&&i===1?" edge":"")+"' style='width:"+c.w+"px;min-width:"+c.w+"px"+(sk?";left:"+l+"px":"")+"'>"+c.t+"</th>";
+    if(sk)l+=c.w;});
+  h+="</tr></thead><tbody>";
+  if(!rows.length)h+="<tr><td colspan='"+cols.length+"'><div class='empty-s'>해당 상태의 방문 건이 없습니다.</div></td></tr>";
+  rows.forEach(function(v){
+    const i=VISITS.indexOf(v);
+    const muted=["reg","cxl","ng"].indexOf(v.st)>=0;
+    h+="<tr class='s-"+v.st+(muted?" muted":"")+"'>";
+    let x=0;
+    cols.forEach(function(c,ci){const sk=(c.g==="fix"&&ci<2);
+      h+="<td class='"+(c.a||"")+(sk?" sk":"")+(sk&&ci===1?" edge":"")+"'"+
+        (sk?" style='left:"+x+"px;background:"+VST[v.st].tint+"'":"")+">"+vcell(v,c,i)+"</td>";
+      if(sk)x+=c.w;});
+    h+="</tr>";
+  });
+  h+="</tbody>";
+  document.getElementById("t3").innerHTML=h;
+  document.getElementById("b3").textContent=VISITS.length;
+  document.querySelectorAll("[data-vt]").forEach(function(e){e.addEventListener("input",function(){
+    VISITS[+e.dataset.vt].time=e.value; paintTrips();})});
+  document.querySelectorAll("[data-vs]").forEach(function(e){e.onchange=function(){
+    const v=VISITS[+e.dataset.vs], was=v.st; v.st=e.value;
+    v.ch=iso(TODAY); v.note=VST[was].label+" → "+VST[v.st].label;
+    if(e.value==="plan"&&!v.ev){ if(!v.fix)v.fix=iso(TODAY); openEval(+e.dataset.vs); }
+    else toast(esc(v.co)+" · "+VST[v.st].label+"으로 변경");
+    drawT3(); drawC3();
+  }});
+  document.querySelectorAll("[data-ve]").forEach(function(b){b.onclick=function(){openEval(+b.dataset.ve)}});
+  paintTrips();
+}
+function drawC3(){
+  const c=document.getElementById("c3"); c.innerHTML="";
+  const cnt={}; VISITS.forEach(function(v){cnt[v.st]=(cnt[v.st]||0)+1});
+  [["all","전체",VISITS.length,null]].concat(Object.keys(VST).map(function(k){
+    return [k,VST[k].label,cnt[k]||0,VST[k].bar]})).forEach(function(d){
+    const b=document.createElement("button");
+    b.className="chip"; b.setAttribute("aria-pressed",d[0]===vf?"true":"false");
+    b.innerHTML=(d[3]?"<i style='background:"+d[3]+"'></i>":"")+d[1]+"<span class='n'>"+d[2]+"</span>";
+    b.onclick=function(){vf=d[0];drawC3();drawT3()};
+    c.appendChild(b);
+  });
+}
+(function initG3(){
+  const g=document.getElementById("g3");
+  VGROUPS.filter(function(x){return !x.lock}).forEach(function(x){
+    const b=document.createElement("button");
+    b.className="gt"; b.setAttribute("aria-pressed",VHIDE[x.k]?"false":"true");
+    b.innerHTML="<s></s>"+x.t;
+    b.onclick=function(){VHIDE[x.k]=!VHIDE[x.k];
+      b.setAttribute("aria-pressed",VHIDE[x.k]?"false":"true"); drawT3();};
+    g.appendChild(b);
+  });
+  const lg=document.getElementById("lg3");
+  Object.keys(VST).forEach(function(k){
+    const s=document.createElement("span");
+    s.innerHTML="<i style='background:"+VST[k].tint+"'></i>"+VST[k].label; lg.appendChild(s);});
+})();
+
+/* 조사 → 방문예정처 이관 */
+function toVisit(s,idxs){
+  let n=0;
+  idxs.forEach(function(i){
+    const it=s.items[i]; if(!it.mid)return;
+    if(VISITS.some(function(v){return v.mid===it.mid}))return;
+    const m=byId(it.mid);
+    const extra=s.cols.map(function(c){const v=(it.ans||{})[c.key];return v?c.label+" "+v:""})
+      .filter(Boolean).join(" / ");
+    VISITS.unshift({mid:m.id,co:m.name,st:"nego",
+      biz:"",kind:(m.cgmp&&m.cgmp.indexOf("가능")>=0)?"OEM/ODM":"부자재·설비",
+      addr:m.addr,site:m.site,link:"",
+      mgr:m.ceo||"",pos:m.ceo?"대표":"",tel:"",mail:"",
+      vend:"",coop:"",qa:"",fix:"",time:"",
+      picker:"협력생산팀",reason:s.purpose+" — "+s.id+(extra?" ("+extra+")":""),
+      vdone:"",att:"",res:"",cq:"",cd:"",
+      memo:"조사에서 이관 · 일정 협의 필요",
+      ch:iso(TODAY),by:"협력생산팀",note:"조사 "+s.id+"에서 이관",ev:false});
+    n++;
+  });
+  drawT3(); drawC3();
+  toast(n?(n+"개사를 방문예정처로 이관 — 3번 탭에서 일정을 조율하세요"):"이미 이관된 업체입니다");
+}
+
+/* ============ TAB4 등록평가 ============ */
+const EVALS=[];
+let ef="all";
+function openEval(i){
+  const v=VISITS[i], m=byId(v.mid);
+  const type=(m&&m.cgmp&&m.cgmp.indexOf("가능")>=0)?"제조업체":"충전·포장";
+  const rows=[["업체명","업체명 *",v.co],["확정 방문일","방문일",v.fix||""],
+    ["방문 예정시간","방문시간",v.time||""],["수배사유","수배사유",v.reason],
+    ["소재지","소재지",v.addr],["업체 담당자","업체 담당자",(v.mgr||"")+(v.pos?" "+v.pos:"")],["연락처","연락처",v.tel],
+    ["방문자","방문자",v.att],["CGMP 보유","업체 유형",type],
+    ["업체 구분","담당자 메모",v.kind]];
+  let h="<div class='sh-h'><div class='k'>상태 변경 · 방문예정</div><h3>등록평가를 생성할까요?</h3>"+
+    "<p>"+esc(v.co)+" · 4번 등록평가 목록에 추가됩니다.</p></div><div class='sh-b'><div class='map'>";
+  rows.forEach(function(r){h+="<div class='mrow'><span class='from'>"+esc(r[0])+"</span><span class='ar'>→</span>"+
+    "<span class='to"+(r[2]?"":" empty")+"'>"+esc(r[2]||"미입력")+"</span></div>"});
+  h+="</div>";
+  const miss=rows.filter(function(r){return !r[2]}).map(function(r){return r[1]});
+  h+="<div class='warnbox'>"+(type==="충전·포장"?"충전·포장 유형이라 제조관리 항목이 빠지고 70→100점으로 환산됩니다. ":"")+
+    (miss.length?("이관 후 <b>"+miss.join(", ")+"</b> 항목은 직접 입력해야 합니다."):"모든 항목이 채워집니다.")+
+    "</div><div class='tip'>평가서 작성은 기존 등록평가 시스템에서 이어집니다.</div></div>"+
+    "<div class='sh-f'><button class='btn' id='cx3'>상태만 변경</button><button class='btn pri' id='go'>등록평가 생성</button></div>";
+  document.getElementById("sheet").innerHTML=h;
+  document.getElementById("scrim").classList.add("on");
+  document.getElementById("cx3").onclick=function(){close();toast(esc(v.co)+" · 상태만 변경 (평가 미생성)")};
+  document.getElementById("go").onclick=function(){
+    v.ev=true;
+    EVALS.unshift({mid:v.mid,name:v.co,date:v.fix,time:v.time,reason:v.reason,type:type,
+      att:v.att||"미지정",addr:v.addr,st:"평가대기",score:null,created:iso(TODAY)});
+    close(); drawT3(); drawE4(); drawC4(); switchTab("p4");
+    toast("등록평가 생성 완료 — "+esc(v.co)+" · 4번 탭 목록에 추가되었습니다");
+  };
+}
+function drawE4(){
+  const rows=EVALS.filter(function(e){return ef==="all"||e.st===ef});
+  const w=document.getElementById("e4");
+  document.getElementById("b4").textContent=EVALS.length;
+  if(!rows.length){w.innerHTML="<div class='wrap'><div class='empty-s'>3번 방문예정처에서 상태를 '방문예정'으로 바꾸면 여기에 평가가 생성됩니다.</div></div>";return}
+  w.innerHTML=rows.map(function(e){
+    const tp=e.type==="제조업체"?"p-info":"p-warn";
+    return "<div class='ecard'><div class='top'><h3>"+esc(e.name)+"</h3>"+
+      (e.score!=null?"<span class='score'>"+e.score+"<small>/100</small></span>":"<span class='pill p-warn'>"+esc(e.st)+"</span>")+
+      "</div><div class='meta'><span class='dim'>"+e.mid+"</span> · <span class='pill "+tp+"'>"+esc(e.type)+"</span><br>"+
+      "방문 "+(e.date?esc(e.date):"미정")+(e.time?" "+esc(e.time):"")+" · 방문자 "+esc(e.att)+"<br>"+
+      esc((e.addr||"").slice(0,30))+"</div>"+
+      "<div class='why'>수배사유 · "+esc(e.reason||"미입력")+"</div>"+
+      "<div class='act'><a href='https://duckjin87-web.github.io/cosmeticdb/' target='_blank' rel='noopener'>평가서 작성 ↗</a>"+
+      "<a class='gh' href='#' data-em='"+e.mid+"'>기본정보</a></div></div>";
+  }).join("");
+  w.querySelectorAll("[data-em]").forEach(function(a){a.onclick=function(ev){ev.preventDefault();openMaster(a.dataset.em)}});
+}
+function drawC4(){
+  const c=document.getElementById("c4"); c.innerHTML="";
+  const cnt={}; EVALS.forEach(function(e){cnt[e.st]=(cnt[e.st]||0)+1});
+  [["all","전체",EVALS.length],["평가대기","평가대기",cnt["평가대기"]||0],
+   ["진행중","진행중",cnt["진행중"]||0],["완료","완료",cnt["완료"]||0]].forEach(function(d){
+    const b=document.createElement("button");
+    b.className="chip"; b.setAttribute("aria-pressed",d[0]===ef?"true":"false");
+    b.innerHTML=d[1]+"<span class='n'>"+d[2]+"</span>";
+    b.onclick=function(){ef=d[0];drawC4();drawE4()};
+    c.appendChild(b);
+  });
+}
+
+/* ============ 탭 ============ */
+function switchTab(p){
+  document.querySelectorAll(".tab").forEach(function(t){t.classList.toggle("on",t.dataset.p===p)});
+  document.querySelectorAll(".page").forEach(function(x){x.classList.toggle("on",x.id===p)});
+  window.scrollTo(0,0);
+}
+document.querySelectorAll(".tab").forEach(function(t){t.onclick=function(){switchTab(t.dataset.p)}});
+
+drawC1();drawT1();drawT2();drawC3();drawT3();drawC4();drawE4();
+
+/* ============ 마스터에서 업체 지정 조사 ============ */
+const PICK={vend:{},codes:{},scope:"all",q:"",purpose:"",custom:[],incl:{}};
+
+function pickTargets(){
+  return MASTER.filter(function(m){
+    if(PICK.scope!=="all"&&m.region!==PICK.scope)return false;
+    if(PICK.q&&norm(m.name).indexOf(norm(PICK.q))<0&&norm(m.ceo).indexOf(norm(PICK.q))<0)return false;
+    return true;});
+}
+function pickedIds(){return Object.keys(PICK.vend).filter(function(k){return PICK.vend[k]})}
+function pickedCodes(){return Object.keys(PICK.codes).filter(function(k){return PICK.codes[k]})}
+
+function openPick(){
+  PICK.vend={}; PICK.codes={}; PICK.scope="all"; PICK.q=""; PICK.incl={};
+  PICK.purpose="3톤 우원 가마"; PICK.custom=[];
+  ["EQ01","EQ02"].forEach(function(k){PICK.codes[k]=1});
+  document.getElementById("sheet").innerHTML=
+   "<div class='sh-h'><div class='k'>새 조사 · 업체 지정</div><h3>마스터에서 조사 대상 고르기</h3>"+
+   "<p>이미 유효한 답이 있는 업체는 자동으로 제외됩니다.</p></div>"+
+   "<div class='sh-b'>"+
+     "<label>조사 목적</label><input type='text' id='pkp' value='"+esc(PICK.purpose)+"'>"+
+     "<label>① 조사 항목 선택</label><div id='pkCodes'></div>"+
+     "<div id='pkCustom' style='margin-top:8px'></div>"+
+     "<button class='btn' id='pkAddCol' style='margin-top:6px'>＋ 사전에 없는 항목 추가</button>"+
+     "<label>② 조사 대상 업체</label>"+
+     "<div class='picker' id='pkScope' style='margin-bottom:7px'></div>"+
+     "<input type='text' id='pkQ' placeholder='기업명 · 대표자 검색'>"+
+     "<div class='pkbar'><button class='btn sm' id='pkAll'>표시된 업체 전체 선택</button>"+
+       "<button class='btn sm' id='pkNone'>선택 해제</button>"+
+       "<button class='btn sm' id='pkNeed'>정보 없는 업체만 선택</button>"+
+       "<span class='spacer'></span><span class='dim' id='pkCnt'></span></div>"+
+     "<div class='pklist' id='pkList'></div>"+
+     "<label>③ 중복 점검 결과</label><div id='pkSum'></div>"+
+   "</div>"+
+   "<div class='sh-f'><button class='btn' id='pkCx'>취소</button><button class='btn pri' id='pkGo'>조사 생성</button></div>";
+  document.getElementById("scrim").classList.add("on");
+  document.getElementById("pkp").oninput=function(e){PICK.purpose=e.target.value};
+  document.getElementById("pkQ").oninput=function(e){PICK.q=e.target.value;drawPkList()};
+  document.getElementById("pkAll").onclick=function(){pickTargets().forEach(function(m){PICK.vend[m.id]=1});drawPkList();drawPkSum()};
+  document.getElementById("pkNone").onclick=function(){PICK.vend={};drawPkList();drawPkSum()};
+  document.getElementById("pkNeed").onclick=function(){
+    const codes=pickedCodes(); PICK.vend={};
+    pickTargets().forEach(function(m){ if(!codes.length||dupOf(m.id,codes).st!=="have")PICK.vend[m.id]=1});
+    drawPkList();drawPkSum(); toast("유효한 답이 없는 업체만 선택했습니다");
+  };
+  document.getElementById("pkAddCol").onclick=function(){PICK.custom.push({label:"",type:"text"});drawPkCustom()};
+  document.getElementById("pkCx").onclick=close;
+  document.getElementById("pkGo").onclick=createPickSurvey;
+  drawPkCodes(); drawPkCustom(); drawPkScope(); drawPkList(); drawPkSum();
+}
+function drawPkCodes(){
+  const w=document.getElementById("pkCodes"); w.innerHTML="";
+  const g={}; DICT.forEach(function(d){(g[d.gn]=g[d.gn]||[]).push(d)});
+  Object.keys(g).forEach(function(k){
+    const t=document.createElement("div"); t.className="grpttl"; t.textContent=k; w.appendChild(t);
+    const row=document.createElement("div"); row.className="picker";
+    g[k].forEach(function(d){
+      const n=VALS.filter(function(v){return v.k===d.k&&isFresh(v)}).length;
+      const b=document.createElement("button");
+      b.className="pk"; b.setAttribute("aria-pressed",PICK.codes[d.k]?"true":"false");
+      b.innerHTML=esc(d.n)+"<span class='c'>"+n+"</span>";
+      b.onclick=function(){ if(PICK.codes[d.k])delete PICK.codes[d.k]; else PICK.codes[d.k]=1;
+        b.setAttribute("aria-pressed",PICK.codes[d.k]?"true":"false"); drawPkList(); drawPkSum(); };
+      row.appendChild(b);
+    });
+    w.appendChild(row);
+  });
+}
+function drawPkCustom(){
+  const w=document.getElementById("pkCustom");
+  w.innerHTML=PICK.custom.map(function(c,i){
+    return "<div class='colrow'><input type='text' data-pl='"+i+"' value='"+esc(c.label)+"' placeholder='사전에 없는 조사항목'>"+
+      "<select data-pt='"+i+"'><option value='text'"+(c.type==="text"?" selected":"")+">자유입력</option>"+
+      "<option value='select'"+(c.type==="select"?" selected":"")+">선택형</option></select>"+
+      "<button class='x' data-px='"+i+"'>×</button></div>";}).join("");
+  w.querySelectorAll("[data-pl]").forEach(function(e){e.oninput=function(){PICK.custom[+e.dataset.pl].label=e.value}});
+  w.querySelectorAll("[data-pt]").forEach(function(e){e.onchange=function(){PICK.custom[+e.dataset.pt].type=e.value}});
+  w.querySelectorAll("[data-px]").forEach(function(e){e.onclick=function(){PICK.custom.splice(+e.dataset.px,1);drawPkCustom()}});
+}
+function drawPkScope(){
+  const w=document.getElementById("pkScope"); w.innerHTML="";
+  const rs={}; MASTER.forEach(function(m){rs[m.region]=(rs[m.region]||0)+1});
+  const opts=[["all","전체",MASTER.length]].concat(Object.keys(rs).sort().map(function(r){return [r,r,rs[r]]}));
+  opts.forEach(function(o){
+    const b=document.createElement("button");
+    b.className="pk"; b.setAttribute("aria-pressed",PICK.scope===o[0]?"true":"false");
+    b.innerHTML=esc(o[1])+"<span class='c'>"+o[2]+"</span>";
+    b.onclick=function(){PICK.scope=o[0];drawPkScope();drawPkList()};
+    w.appendChild(b);
+  });
+}
+function drawPkList(){
+  const codes=pickedCodes(), rows=pickTargets(), w=document.getElementById("pkList");
+  let h="";
+  rows.forEach(function(m){
+    const d=codes.length?dupOf(m.id,codes):null;
+    const badge=!d?"":d.st==="have"?"<span class='pill p-ok'>기보유</span>":
+      d.st==="stale"?"<span class='pill p-warn'>재확인</span>":"<span class='pill p-info'>신규</span>";
+    const detail=!d?"":(d.have?"보유 "+d.have:"")+(d.stale?" · 만료 "+d.stale:"")+(d.none?" · 없음 "+d.none:"");
+    h+="<label class='pkrow"+(d&&d.st==="have"?" have":"")+"'><input type='checkbox' data-pv='"+m.id+"'"+
+      (PICK.vend[m.id]?" checked":"")+">"+
+      "<span class='n'>"+esc(m.name)+"</span>"+
+      "<span class='r dim'>"+esc(m.region)+"</span>"+
+      "<span class='b'>"+badge+"</span>"+
+      "<span class='dd dim'>"+esc(detail)+"</span></label>";
+  });
+  if(!rows.length)h="<div class='empty-s'>조건에 맞는 업체가 없습니다.</div>";
+  w.innerHTML=h;
+  w.querySelectorAll("[data-pv]").forEach(function(c){c.onchange=function(){
+    if(c.checked)PICK.vend[c.dataset.pv]=1; else delete PICK.vend[c.dataset.pv];
+    drawPkSum();}});
+  document.getElementById("pkCnt").textContent="표시 "+rows.length+"개사 · 선택 "+pickedIds().length+"개사";
+}
+function drawPkSum(){
+  const codes=pickedCodes(), ids=pickedIds(), w=document.getElementById("pkSum");
+  document.getElementById("pkCnt").textContent="표시 "+pickTargets().length+"개사 · 선택 "+ids.length+"개사";
+  if(!ids.length||!codes.length){
+    w.innerHTML="<div class='tip'>조사 항목과 대상 업체를 고르면 중복 점검 결과가 나옵니다.</div>";return;}
+  let have=0,stale=0,nw=0,known=0;
+  ids.forEach(function(id){const d=dupOf(id,codes);
+    if(d.st==="have")have++; else if(d.st==="stale")stale++; else nw++;
+    known+=d.have;});
+  const total=ids.length*codes.length;
+  const reuse=total?Math.round(known/total*100):0;
+  w.innerHTML="<div class='sumgrid'>"+
+    "<div class='sc ok'><b>"+have+"</b>기보유<i>물어볼 필요 없음</i></div>"+
+    "<div class='sc wr'><b>"+stale+"</b>재확인<i>변경 여부만 확인</i></div>"+
+    "<div class='sc nw'><b>"+nw+"</b>신규<i>실제 조사 대상</i></div></div>"+
+    "<div class='reuse' style='margin-top:9px'>재사용률 <b>"+reuse+"%</b> — "+total+"칸 중 "+known+
+    "칸은 이미 답이 있습니다. 실제로 물어볼 곳은 <b>"+(stale+nw)+"개사</b>입니다."+
+    "<div class='rbar'><i style='width:"+reuse+"%'></i></div></div>"+
+    "<div class='tip'>기보유 업체도 조사에 넣고 싶으면 위 목록에서 체크를 유지하세요. "+
+    "포함하면 기존 답이 미리 채워진 상태로 들어가고, 행이 흐리게 표시됩니다.</div>";
+}
+function createPickSurvey(){
+  const codes=pickedCodes(), ids=pickedIds();
+  if(!ids.length){toast("조사 대상 업체를 선택하세요");return}
+  if(!codes.length&&!PICK.custom.filter(function(c){return c.label.trim()}).length){
+    toast("조사 항목을 하나 이상 선택하세요");return}
+  const cols=codes.map(function(k){
+    return {key:k,label:DMAP[k].n,type:DMAP[k].t==="yn"?"select":"text",
+      options:DMAP[k].t==="yn"?["Y","N"]:[],sync:"",dictK:k};});
+  PICK.custom.filter(function(c){return c.label.trim()}).forEach(function(c,i){
+    cols.push({key:"cx"+i,label:c.label.trim(),type:c.type,
+      options:c.type==="select"?["가능","불가","확인중"]:[],sync:"",dictK:null});});
+  const items=ids.map(function(id){
+    const m=byId(id), d=codes.length?dupOf(id,codes):{st:"new",have:0,stale:0,none:0};
+    const ans={};
+    codes.forEach(function(k){const v=getVal(id,k); if(v&&isFresh(v))ans[k]=v.v;});
+    return {name:m.name,ceo:m.ceo,addr:m.addr,st:"auto",mid:m.id,ev:["마스터 지정"],
+      ans:ans,done:false,dup:d.st,skip:(d.st==="have")};
+  });
+  const id="S"+String(SURVEYS.length+1).padStart(3,"0");
+  const purpose=(PICK.purpose||"").trim()||"이름 없는 조사";
+  SURVEYS.unshift({id:id,purpose:purpose,creator:"도토리",date:iso(TODAY),
+    cols:cols,items:items,dictCodes:codes});
+  items.forEach(function(it){const m=byId(it.mid);
+    if(m&&m.surveys.indexOf(purpose)<0)m.surveys.push(purpose);});
+  openSurvey=id; close(); drawT2(); drawC1(); drawT1();
+  const hv=items.filter(function(i){return i.dup==="have"}).length;
+  toast(esc(purpose)+" 생성 · 대상 "+items.length+"개사 (기보유 "+hv+"개사는 답변 자동 채움)");
+}
+document.getElementById("pickSurvey").onclick=openPick;
+
+</script>
+</body>
+</html>
