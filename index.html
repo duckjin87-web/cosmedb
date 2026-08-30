@@ -6,11 +6,13 @@
 <title>CosmeDB — 마스터 · 조사 · 방문예정처 · 등록평가</title>
 <style>
 :root{
-  --navy:#3b4f8a; --navy-deep:#2B3A69; --navy-l:#5A6EA8;
-  --navy-50:#EEF1F8; --navy-100:#DDE3F1;
-  --canvas:#F4F5F8; --surface:#FFF;
-  --ink:#1C2333; --ink-2:#616B80; --ink-3:#98A0B2;
-  --line:#E6E9F0; --line-2:#D6DBE7;
+  --navy:#37497F; --navy-deep:#2A3A66; --navy-l:#6B7CAE;
+  --navy-50:#EEF1F9; --navy-100:#DEE4F2;
+  --canvas:#F5F5F7; --surface:#FFFFFF;
+  --ink:#1D1D1F; --ink-2:#6E6E73; --ink-3:#A1A1A6;
+  --line:#EBEBEF; --line-2:#D7D7DE;
+  --sel:#0A6CFF;
+  --shadow-card:0 1px 2px rgba(0,0,0,.04),0 14px 34px -22px rgba(0,0,0,.18);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{-webkit-text-size-adjust:100%}
@@ -36,7 +38,7 @@ body{background:var(--canvas);color:var(--ink);
 
 .page{display:none}
 .page.on{display:block}
-.tool{background:var(--surface);border-bottom:.5px solid var(--line-2);padding:12px 18px}
+.tool{background:var(--surface);border-bottom:1px solid var(--line);padding:14px 22px}
 .trow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .title{font-size:17px;font-weight:700;letter-spacing:-.022em}
 .note{font-size:11.5px;color:var(--ink-3)}
@@ -68,10 +70,10 @@ body{background:var(--canvas);color:var(--ink);
 .gt s{width:6px;height:6px;border-right:1.4px solid currentColor;border-bottom:1.4px solid currentColor;
  transform:rotate(45deg) translate(-1px,-1px);transition:.2s}
 .gt[aria-pressed="false"] s{transform:rotate(-45deg) translate(-1px,1px)}
-.body{padding:14px 18px 40px}
+.body{padding:18px 22px 44px}
 
-.wrap{background:var(--surface);border:.5px solid var(--line-2);border-radius:12px;overflow:auto;
- box-shadow:0 1px 3px rgba(28,35,51,.06)}
+.wrap{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:auto;
+ box-shadow:var(--shadow-card)}
 .wrap.tall{max-height:calc(100vh - 250px)}
 table{border-collapse:separate;border-spacing:0;font-variant-numeric:tabular-nums;width:100%}
 table.nw{white-space:nowrap}
@@ -98,25 +100,11 @@ td a:hover{text-decoration:underline}
  padding:2px 6px;border-radius:5px;margin:1px 3px 1px 0}
 .clickrow{cursor:pointer}
 .clickrow:hover td{background:#FAFBFD}
-/* 업체 선택 — 파란 테두리 + 상단 떠있는 댓글바 */
-.clickrow.sel td{background:#EAEFF9!important}
-.clickrow.sel td{box-shadow:inset 0 2px 0 var(--navy),inset 0 -2px 0 var(--navy)}
-.clickrow.sel td:first-child{position:relative;border-radius:12px 0 0 12px;box-shadow:inset 2px 0 0 var(--navy),inset 0 2px 0 var(--navy),inset 0 -2px 0 var(--navy)}
-.clickrow.sel td:last-child{border-radius:0 12px 12px 0;box-shadow:inset -2px 0 0 var(--navy),inset 0 2px 0 var(--navy),inset 0 -2px 0 var(--navy)}
-.cbar{position:absolute;top:-17px;left:46px;display:flex;align-items:center;gap:8px;z-index:50;white-space:nowrap}
-.cbub{width:30px;height:30px;border-radius:50%;border:none;background:var(--navy);color:#fff;cursor:pointer;
- display:inline-flex;align-items:center;justify-content:center;position:relative;box-shadow:0 2px 7px rgba(28,35,51,.28)}
-.cbub .cn{position:absolute;top:-4px;right:-4px;min-width:15px;height:15px;padding:0 3px;border-radius:8px;
- background:#E8543F;color:#fff;font-size:9px;font-weight:800;line-height:15px;text-align:center}
-.cin{display:flex;align-items:center;gap:6px;background:#fff;border:.5px solid var(--line-2);border-radius:999px;
- padding:5px 12px;box-shadow:0 4px 14px rgba(28,35,51,.16);min-width:300px}
-.cin input{border:none;outline:none;font:inherit;font-size:12.5px;flex:1;background:transparent;color:var(--ink)}
-.cin input::placeholder{color:var(--ink-3)}
-.cmic{border:none;background:none;color:var(--ink-3);cursor:pointer;display:inline-flex;padding:2px;border-radius:6px}
-.cmic:hover{color:var(--navy);background:var(--navy-50)}
-.cinfo{border:.5px solid var(--line-2);background:#fff;border-radius:999px;padding:5px 12px;font:inherit;
- font-size:11.5px;font-weight:600;color:var(--ink-2);cursor:pointer;box-shadow:0 4px 12px rgba(28,35,51,.12)}
-.cinfo:hover{border-color:var(--navy-l);color:var(--navy)}
+/* 업체 선택 — 내용은 그대로, 파란 테두리만 (모든 탭 공통) */
+tr.rowsel>td{box-shadow:inset 0 2px 0 var(--sel),inset 0 -2px 0 var(--sel)}
+tr.rowsel>td:first-child{position:relative;border-radius:11px 0 0 11px;box-shadow:inset 2px 0 0 var(--sel),inset 0 2px 0 var(--sel),inset 0 -2px 0 var(--sel)}
+tr.rowsel>td:last-child{border-radius:0 11px 11px 0;box-shadow:inset -2px 0 0 var(--sel),inset 0 2px 0 var(--sel),inset 0 -2px 0 var(--sel)}
+.ecard.rowsel{box-shadow:0 0 0 2px var(--sel)!important;border-color:transparent!important}
 
 /* survey list */
 .chev{display:inline-block;width:7px;height:7px;border-right:1.6px solid var(--ink-3);border-bottom:1.6px solid var(--ink-3);
@@ -217,7 +205,7 @@ thead th.sk{z-index:45}
 /* eval cards */
 .egrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:11px}
 /* 주간 방문 달력 */
-#cal4{background:var(--surface);border:.5px solid var(--line-2);border-radius:12px;box-shadow:0 1px 3px rgba(28,35,51,.06);padding:14px 16px;margin-bottom:12px}
+#cal4{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow-card);padding:16px 18px;margin-bottom:14px}
 .calhd{display:flex;align-items:center;gap:10px;margin-bottom:11px}
 .calttl{font-size:14px;font-weight:700;color:var(--ink)}
 .calrange{font-size:12px;font-weight:600;color:var(--ink-3);margin-left:8px}
@@ -239,8 +227,8 @@ thead th.sk{z-index:45}
 .cev i{width:5px;height:5px;border-radius:50%;flex:0 0 auto}
 .cev span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .calfoot{margin-top:10px;font-size:11px;color:var(--ink-3)}
-.ecard{background:var(--surface);border:.5px solid var(--line-2);border-radius:12px;padding:14px 15px;
- box-shadow:0 1px 2px rgba(28,35,51,.05);transition:.16s}
+.ecard{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:15px 16px;
+ box-shadow:var(--shadow-card);transition:.18s}
 .ecard:hover{border-color:var(--navy-l);transform:translateY(-1px)}
 .ecard .top{display:flex;align-items:flex-start;gap:8px}
 .ecard h3{font-size:15px;font-weight:700;letter-spacing:-.02em;flex:1;min-width:0}
@@ -495,21 +483,20 @@ function byId(id){return MASTER.filter(function(m){return m.id===id})[0]}
 function pushHist(m,f,b,a,s){ if(String(b||"")===String(a||""))return;
   m.hist.unshift({d:iso(TODAY),f:f,b:b||"",a:a||"",s:s}); }
 
-/* ============ TAB1 마스터 ============ */
-let f1="all", q1="", selM=null;
-const ICO_CHAT="<svg viewBox='0 0 24 24' width='15' height='15' fill='currentColor'><path d='M12 3C6.5 3 2 6.7 2 11c0 2.1 1 4 2.7 5.4L4 21l5-2.1c1 .2 2 .3 3 .3 5.5 0 10-3.7 10-8s-4.5-8-10-8z'/></svg>";
-const ICO_MIC="<svg viewBox='0 0 24 24' width='14' height='14' fill='currentColor'><path d='M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z'/><path d='M19 11a1 1 0 0 0-2 0 5 5 0 0 1-10 0 1 1 0 0 0-2 0 7 7 0 0 0 6 6.92V21a1 1 0 0 0 2 0v-3.08A7 7 0 0 0 19 11z'/></svg>";
-function commentBar(m){
-  const n=(m.comments||[]).length;
-  return "<div class='cbar' data-cbar>"+
-    "<button class='cbub' data-cbub='"+m.id+"' title='댓글'>"+ICO_CHAT+"<span class='cn'"+(n?"":" hidden")+">"+n+"</span></button>"+
-    "<div class='cin'><input placeholder='댓글 추가…' data-cinput='"+m.id+"' autocomplete='off'>"+
-    "<button class='cmic' data-cmic title='음성 입력'>"+ICO_MIC+"</button></div>"+
-    "<button class='cinfo' data-cinfo='"+m.id+"'>기본정보 ▸</button></div>";
+/* ============ 행 선택(파란 테두리) — 모든 탭 공통 ============ */
+function wireRowSelect(container,rowSel){
+  if(!container||container._rsWired)return; container._rsWired=true;
+  container.addEventListener("click",function(e){
+    if(e.target.closest("input,select,button,a,label,textarea,.rz,.chev"))return;
+    const row=e.target.closest(rowSel); if(!row||!container.contains(row))return;
+    const on=row.classList.contains("rowsel");
+    container.querySelectorAll(".rowsel").forEach(function(r){r.classList.remove("rowsel")});
+    if(!on)row.classList.add("rowsel");
+  });
 }
-function addComment(id,txt){ txt=String(txt||"").trim(); if(!txt)return;
-  const m=byId(id); m.comments=m.comments||[]; m.comments.push({t:txt,d:iso(TODAY),by:"나"});
-  drawT1(); toast(esc(m.name)+" · 댓글 추가됨 ("+m.comments.length+")"); }
+
+/* ============ TAB1 마스터 ============ */
+let f1="all", q1="";
 function drawT1(){
   const rows=MASTER.filter(function(m){
     if(f1!=="all"&&m.surveys.indexOf(f1)<0)return false;
@@ -521,8 +508,7 @@ function drawT1(){
   rows.forEach(function(m){
     const pg={"완료":"p-ok","진행중":"p-info","확인필요":"p-warn","답변대기중":"p-gray"}[m.prog]||"p-gray";
     const rec=m.hist.filter(function(x){return x.d>=iso(ago(6))}).length;
-    const sel=(m.id===selM);
-    h+="<tr class='clickrow"+(sel?" sel":"")+"' data-m='"+m.id+"'><td class='dim'>"+m.id+(sel?commentBar(m):"")+"</td><td><span class='nm'>"+esc(m.name)+"</span></td>"+
+    h+="<tr class='clickrow' data-m='"+m.id+"'><td class='dim'>"+m.id+"</td><td><span class='nm'>"+esc(m.name)+"</span></td>"+
       "<td>"+(m.ceo?esc(m.ceo):dim())+"</td><td>"+esc(m.region)+"</td><td>"+esc(m.owner)+"</td>"+
       "<td class='ctr'><span class='pill "+pg+"'>"+esc(m.prog)+"</span></td>"+
       "<td>"+(m.surveys.length?m.surveys.map(function(s){return "<span class='fl'>"+esc(s)+"</span>"}).join(""):dim("없음"))+"</td>"+
@@ -535,26 +521,8 @@ function drawT1(){
   h+="</tbody>";
   const t=document.getElementById("t1"); t.innerHTML=h;
   document.getElementById("b1").textContent=rows.length;
-  t.querySelectorAll("[data-m]").forEach(function(tr){
-    tr.onclick=function(e){ if(e.target.closest("[data-cbar]"))return;   /* 댓글바 클릭은 선택 토글 제외 */
-      selM=(selM===tr.dataset.m?null:tr.dataset.m); drawT1(); };
-    tr.ondblclick=function(){openMaster(tr.dataset.m)};
-  });
-  const bar=t.querySelector("[data-cbar]");
-  if(bar){
-    bar.onclick=function(e){e.stopPropagation()};
-    const inp=bar.querySelector("[data-cinput]");
-    if(inp){ inp.focus();
-      inp.onkeydown=function(e){ e.stopPropagation();
-        if(e.key==="Enter"){addComment(inp.dataset.cinput,inp.value);}
-        else if(e.key==="Escape"){selM=null;drawT1();} };
-    }
-    const info=bar.querySelector("[data-cinfo]"); if(info)info.onclick=function(e){e.stopPropagation();openMaster(info.dataset.cinfo)};
-    const bub=bar.querySelector("[data-cbub]"); if(bub)bub.onclick=function(e){e.stopPropagation();
-      const m=byId(bub.dataset.cbub), cs=(m.comments||[]);
-      toast(cs.length?("댓글 "+cs.length+"개 · 최근: “"+esc(cs[cs.length-1].t)+"”"):"아직 댓글이 없습니다");};
-    const mic=bar.querySelector("[data-cmic]"); if(mic)mic.onclick=function(e){e.stopPropagation();toast("음성 입력은 데모에서 지원되지 않습니다");};
-  }
+  t.querySelectorAll("[data-m]").forEach(function(tr){tr.ondblclick=function(){openMaster(tr.dataset.m)}});
+  wireRowSelect(t,"tr[data-m]");
 }
 function drawC1(){
   const keys=[]; MASTER.forEach(function(m){m.surveys.forEach(function(s){if(keys.indexOf(s)<0)keys.push(s)})});
@@ -1506,6 +1474,10 @@ function switchTab(p){
 document.querySelectorAll(".tab").forEach(function(t){t.onclick=function(){switchTab(t.dataset.p)}});
 
 drawC1();drawT1();drawT2();drawC3();drawT3();drawC4();drawCal4();drawE4();
+/* 업체 행 선택(테두리) — 방문예정처 · 조사 · 등록평가 탭 */
+wireRowSelect(document.getElementById("t3"),"tbody tr");
+wireRowSelect(document.getElementById("t2"),".panel tbody tr");
+wireRowSelect(document.getElementById("e4"),".ecard");
 
 /* ============ 마스터에서 업체 지정 조사 ============ */
 const PICK={vend:{},codes:{},scope:"all",q:"",purpose:"",custom:[],incl:{}};
