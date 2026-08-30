@@ -197,6 +197,29 @@ thead th.sk{z-index:45}
 
 /* eval cards */
 .egrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:11px}
+/* 주간 방문 달력 */
+#cal4{background:var(--surface);border:.5px solid var(--line-2);border-radius:12px;box-shadow:0 1px 3px rgba(28,35,51,.06);padding:14px 16px;margin-bottom:12px}
+.calhd{display:flex;align-items:center;gap:10px;margin-bottom:11px}
+.calttl{font-size:14px;font-weight:700;color:var(--ink)}
+.calrange{font-size:12px;font-weight:600;color:var(--ink-3);margin-left:8px}
+.calnav{margin-left:auto;display:flex;gap:5px}
+.calnav .btn{padding:4px 10px;font-size:11.5px}
+.calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:7px}
+.calday{border:.5px solid var(--line);border-radius:10px;padding:8px 6px 9px;min-height:100px;background:#fff;display:flex;flex-direction:column;align-items:center}
+.calday.we{background:#FAFBFD}
+.calday.has{border-color:var(--navy-100);background:#FCFDFF}
+.cdw{font-size:10.5px;font-weight:700;color:var(--ink-3);letter-spacing:.04em}
+.calday:nth-child(6) .cdw,.calday:nth-child(7) .cdw{color:#B07}
+.cdnum{width:30px;height:30px;line-height:30px;text-align:center;font-size:14px;font-weight:700;color:var(--ink);border-radius:50%;margin:5px 0 6px}
+.cdnum.mark{background:rgba(59,79,138,.15);color:var(--navy)}
+.cdnum.today{box-shadow:0 0 0 2px var(--navy)}
+.cdnum.mark.today{background:var(--navy);color:#fff;box-shadow:none}
+.cdnum.mini{display:inline-block;width:13px;height:13px;margin:0 2px -2px;vertical-align:middle}
+.cdlist{width:100%;display:flex;flex-direction:column;gap:3px}
+.cev{display:flex;align-items:center;gap:4px;font-size:10px;line-height:1.25;background:var(--navy-50);border-radius:5px;padding:2px 5px;max-width:100%}
+.cev i{width:5px;height:5px;border-radius:50%;flex:0 0 auto}
+.cev span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.calfoot{margin-top:10px;font-size:11px;color:var(--ink-3)}
 .ecard{background:var(--surface);border:.5px solid var(--line-2);border-radius:12px;padding:14px 15px;
  box-shadow:0 1px 2px rgba(28,35,51,.05);transition:.16s}
 .ecard:hover{border-color:var(--navy-l);transform:translateY(-1px)}
@@ -379,7 +402,7 @@ thead th.sk{z-index:45}
       <a class="btn" href="https://duckjin87-web.github.io/cosmeticdb/" target="_blank" rel="noopener">등록평가 시스템 열기 ↗</a></div>
     <div class="chips" id="c4"></div>
   </div>
-  <div class="body"><div class="egrid" id="e4"></div></div>
+  <div class="body"><div id="cal4"></div><div class="egrid" id="e4"></div></div>
 </div>
 
 <div class="scrim" id="scrim"><div class="sheet" id="sheet"></div></div>
@@ -1365,6 +1388,47 @@ function drawE4(){
   }).join("");
   w.querySelectorAll("[data-em]").forEach(function(a){a.onclick=function(ev){ev.preventDefault();openMaster(a.dataset.em)}});
 }
+/* ===== 등록평가 탭 · 주간 방문 달력 ===== */
+function isoLocal(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+function weekMonday(d){const x=new Date(d);x.setHours(0,0,0,0);const off=(x.getDay()+6)%7;x.setDate(x.getDate()-off);return x;}
+function visitDates(){return VISITS.filter(function(v){return v.fix&&/^\d{4}-\d{2}-\d{2}$/.test(v.fix)&&v.st!=="cxl";});}
+let calMonday=null;
+function initCalWeek(){
+  const vs=visitDates(); let base=TODAY;
+  if(vs.length){let best=TODAY,bd=Infinity;vs.forEach(function(v){const d=new Date(v.fix+"T00:00:00");const diff=Math.abs(d-TODAY);if(diff<bd){bd=diff;best=d;}});base=best;}
+  calMonday=weekMonday(base);
+}
+function drawCal4(){
+  if(!calMonday)initCalWeek();
+  const wd=["월","화","수","목","금","토","일"];
+  const days=[]; for(let i=0;i<7;i++){const d=new Date(calMonday);d.setDate(d.getDate()+i);days.push(d);}
+  const byDay={}; visitDates().forEach(function(v){(byDay[v.fix]=byDay[v.fix]||[]).push(v);});
+  const end=days[6];
+  const range=(calMonday.getMonth()+1)+"/"+calMonday.getDate()+" – "+(end.getMonth()+1)+"/"+end.getDate();
+  const todayIso=isoLocal(TODAY);
+  let h="<div class='calhd'><div class='calttl'>주간 방문 일정<span class='calrange'>"+range+"</span></div>"+
+    "<div class='calnav'><button class='btn sm' data-cw='-1'>◀ 지난주</button>"+
+    "<button class='btn sm' data-cw='0'>오늘</button>"+
+    "<button class='btn sm' data-cw='1'>다음주 ▶</button></div></div><div class='calgrid'>";
+  let wk=0;
+  days.forEach(function(d,i){
+    const iso=isoLocal(d), list=byDay[iso]||[]; wk+=list.length;
+    const isToday=iso===todayIso;
+    h+="<div class='calday"+(i>=5?" we":"")+(list.length?" has":"")+"'>"+
+      "<div class='cdw'>"+wd[i]+"</div>"+
+      "<div class='cdnum"+(list.length?" mark":"")+(isToday?" today":"")+"'>"+d.getDate()+"</div>"+
+      "<div class='cdlist'>"+list.map(function(v){
+        return "<div class='cev' title='"+esc(v.co)+(v.time?" · "+v.time:"")+"'><i style='background:"+VST[v.st].bar+"'></i>"+
+          "<span>"+(v.time?esc(v.time)+" ":"")+esc(v.co)+"</span></div>";}).join("")+"</div></div>";
+  });
+  h+="</div><div class='calfoot'>이번 주 방문 <b>"+wk+"</b>건 · 날짜의 <span class='cdnum mini mark'></span> 동그란 음영이 방문예정일입니다</div>";
+  const c=document.getElementById("cal4"); c.innerHTML=h;
+  c.querySelectorAll("[data-cw]").forEach(function(b){b.onclick=function(){
+    const v=+b.dataset.cw;
+    if(v===0)calMonday=weekMonday(TODAY); else{calMonday=new Date(calMonday);calMonday.setDate(calMonday.getDate()+v*7);}
+    drawCal4();
+  };});
+}
 function drawC4(){
   const c=document.getElementById("c4"); c.innerHTML="";
   const cnt={}; EVALS.forEach(function(e){cnt[e.st]=(cnt[e.st]||0)+1});
@@ -1385,10 +1449,11 @@ function switchTab(p){
   document.querySelectorAll(".page").forEach(function(x){x.classList.toggle("on",x.id===p)});
   window.scrollTo(0,0);
   if(p==="p3"&&!t3Fitted){t3Fitted=true; requestAnimationFrame(autoFitT3);}   /* 처음 열 때 내용에 맞춰 자동 조정 */
+  if(p==="p4")drawCal4();   /* 최신 방문일정 반영 */
 }
 document.querySelectorAll(".tab").forEach(function(t){t.onclick=function(){switchTab(t.dataset.p)}});
 
-drawC1();drawT1();drawT2();drawC3();drawT3();drawC4();drawE4();
+drawC1();drawT1();drawT2();drawC3();drawT3();drawC4();drawCal4();drawE4();
 
 /* ============ 마스터에서 업체 지정 조사 ============ */
 const PICK={vend:{},codes:{},scope:"all",q:"",purpose:"",custom:[],incl:{}};
