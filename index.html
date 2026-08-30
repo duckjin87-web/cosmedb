@@ -52,6 +52,12 @@ body{background:var(--canvas);color:var(--ink);
 .btn:disabled{opacity:.42;cursor:default}
 .srch{border:.5px solid var(--line-2);border-radius:8px;padding:6px 10px;font:inherit;font-size:12.5px;width:186px}
 .srch:focus{outline:none;border-color:var(--navy)}
+.catbar{display:flex;gap:9px;align-items:center;flex-wrap:wrap;padding-top:11px}
+.catlb{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);font-weight:700}
+.catf{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--ink-2);font-weight:600}
+.catf select{font:inherit;font-size:12px;font-weight:600;color:var(--ink);border:.5px solid var(--line-2);
+ border-radius:8px;padding:4px 9px;background:#fff;cursor:pointer}
+.catf select:focus{outline:none;border-color:var(--navy)}
 .chips{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;padding-top:10px}
 .chips::-webkit-scrollbar{display:none}
 .chip{flex:0 0 auto;border:none;cursor:pointer;background:var(--navy-50);color:var(--ink-2);font:inherit;
@@ -268,6 +274,8 @@ thead th.sk{z-index:45}
 .sh-b input:focus,.sh-b textarea:focus,.sh-b select:focus{outline:none;border-color:var(--navy)}
 .tip{font-size:11.5px;color:var(--ink-3);margin-top:6px;line-height:1.5}
 .colrow{display:grid;grid-template-columns:1fr 92px 116px 26px;gap:6px;margin-bottom:6px;align-items:center}
+.colhdr{display:grid;grid-template-columns:1fr 92px 116px 26px;gap:6px;margin-bottom:5px}
+.colhdr span{font-size:10px;font-weight:700;letter-spacing:.03em;color:var(--ink-3);text-transform:uppercase}
 .colrow .x{border:none;background:none;color:var(--ink-3);cursor:pointer;font-size:16px;line-height:1}
 .colrow .x:hover{color:#C0392B}
 .map{border:.5px solid var(--line-2);border-radius:10px;overflow:hidden;margin-top:4px}
@@ -370,7 +378,10 @@ thead th.sk{z-index:45}
   <div class="tool">
     <div class="trow"><span class="title">업체마스터</span>
       <span class="note">행을 누르면 기본정보와 6개월 갱신 이력이 열립니다</span>
-      <span class="spacer"></span><input class="srch" id="q1" placeholder="기업명 · 대표자 검색"></div>
+      <span class="spacer"></span>
+      <button class="btn" id="refreshBtn" title="식약처 데이터와 대조">🔄 갱신요청</button>
+      <input class="srch" id="q1" placeholder="기업명 · 대표자 검색"></div>
+    <div class="catbar" id="cf1"></div>
     <div class="chips" id="c1"></div>
   </div>
   <div class="body">
@@ -455,6 +466,17 @@ function iso(d){return d.toISOString().slice(0,10)}
 function ago(m){const d=new Date(TODAY);d.setMonth(d.getMonth()-m);return d}
 
 MASTER.forEach(function(m){ m.surveys=m.fl.slice(); m.hist=m.hist||[]; });
+/* 기존 데이터에서 대표생산 유형 · 인증현황(ISO) 자동 추론 */
+MASTER.forEach(function(m){
+  const d=m.desc||"", cg=!!(m.cgmp&&m.cgmp.indexOf("가능")>=0);
+  m.type = /설비|유화기|실링기/.test(d)?"설비제조":
+           /부자재|단상자|라벨|인쇄/.test(d)?"부자재":
+           /원료|유통|소분/.test(d)?"원료":
+           (/충전|포장|파우치/.test(d)&&!cg)?"충전·포장":
+           cg?"제조(OEM/ODM)":"기타";
+  m.iso = /ISO/i.test(d)?"ISO 22716":"";
+});
+function certCG(m){return !!(m.cgmp&&m.cgmp.indexOf("가능")>=0);}
 
 /* 시연용 갱신 이력 (6개월 경계를 보여주기 위해 일부는 7~9개월 전) */
 (function seedHist(){
@@ -503,23 +525,67 @@ function wireRowSelect(container,rowSel){
 }
 
 /* ============ TAB1 마스터 ============ */
-let f1="all", q1="";
+let f1="all", q1="", fType="all", fRegion="all", fCert="all";
+function uniqSort(arr){return arr.filter(function(v,i){return v&&arr.indexOf(v)===i}).sort();}
+function catSelect(id,label,cur,opts){
+  let o="<option value='all'>전체</option>";
+  opts.forEach(function(x){o+="<option value=\""+esc(x)+"\""+(x===cur?" selected":"")+">"+esc(x)+"</option>"});
+  return "<label class='catf'><span>"+label+"</span><select data-cat='"+id+"'>"+o+"</select></label>";
+}
+function drawCatFilter(){
+  const c=document.getElementById("cf1"); if(!c)return;
+  c.innerHTML="<span class='catlb'>조회</span>"+
+    catSelect("type","유형",fType,uniqSort(MASTER.map(function(m){return m.type})))+
+    catSelect("region","소재지",fRegion,uniqSort(MASTER.map(function(m){return m.region})))+
+    catSelect("cert","인증현황",fCert,["CGMP","ISO","기타"]);
+  c.querySelectorAll("[data-cat]").forEach(function(s){s.onchange=function(){
+    const k=s.dataset.cat,v=s.value; if(k==="type")fType=v; else if(k==="region")fRegion=v; else fCert=v; drawT1();}});
+}
+/* 식약처 데이터 대조 갱신요청 (데모 — 실제 대조는 식약처 API 연동 필요) */
+function openRefreshModal(){
+  const upd=Math.round(MASTER.length*0.3);
+  const newCos=[["가원바이오","경기 화성"],["한별코스텍","충북 청주"]];
+  const closed=[MASTER[5]?MASTER[5].name:"—"];
+  let h="<div class='sh-h'><div class='k'>식약처 데이터 대조</div><h3>업체 정보 갱신 요청</h3>"+
+    "<p>식약처 공공데이터(CGMP 인증·기능성화장품 신고)와 대조합니다.</p></div><div class='sh-b'>"+
+    "<div class='warnbox'>데모 화면입니다 · 실제 대조·자동 등록은 <b>식약처 API 연동</b>이 필요합니다.</div>"+
+    "<div class='sumgrid'><div class='sc ok'><b>"+upd+"</b><i>정보 갱신</i></div>"+
+    "<div class='sc nw'><b>"+newCos.length+"</b><i>신규 후보</i></div>"+
+    "<div class='sc wr'><b>"+closed.length+"</b><i>폐업 의심</i></div></div>"+
+    "<label>신규 등록 후보</label><div class='hist'>"+newCos.map(function(x){
+      return "<div class='hrow'><time>NEW</time><div class='ch'><b>"+esc(x[0])+"</b> "+esc(x[1])+"<span class='src'>식약처 신규 신고</span></div></div>"}).join("")+"</div>"+
+    "<label>폐업 의심 (확인 필요)</label><div class='hist'>"+closed.map(function(n){
+      return "<div class='hrow old-h'><time>！</time><div class='ch'><b>"+esc(n)+"</b> 최근 신고·인증 이력 없음<span class='src'>식약처 미확인</span></div></div>"}).join("")+"</div>"+
+    "</div><div class='sh-f'><button class='btn' id='rfx'>닫기</button><button class='btn pri' id='rfok'>갱신 반영 (데모)</button></div>";
+  document.getElementById("sheet").innerHTML=h;
+  document.getElementById("scrim").classList.add("on");
+  document.getElementById("rfx").onclick=close;
+  document.getElementById("rfok").onclick=function(){close();toast("데모: 식약처 API 연동 후 실제 갱신이 반영됩니다");};
+}
 function drawT1(){
   const rows=MASTER.filter(function(m){
     if(f1!=="all"&&m.surveys.indexOf(f1)<0)return false;
+    if(fType!=="all"&&m.type!==fType)return false;
+    if(fRegion!=="all"&&m.region!==fRegion)return false;
+    if(fCert!=="all"){const cg=certCG(m),iso=!!m.iso;
+      if(fCert==="CGMP"&&!cg)return false;
+      if(fCert==="ISO"&&!iso)return false;
+      if(fCert==="기타"&&(cg||iso))return false;}
     if(q1&&norm(m.name).indexOf(norm(q1))<0&&norm(m.ceo).indexOf(norm(q1))<0)return false;
     return true;});
-  let h="<thead><tr><th>업체ID</th><th>기업명</th><th>대표자</th><th>지역</th><th class='ctr'>진행상황</th>"+
-    "<th>조사 이력</th><th class='ctr'>CGMP</th><th>3T 가마</th><th class='ctr'>갱신</th><th>기업개요</th>"+
+  let h="<thead><tr><th>업체ID</th><th>기업명</th><th>대표자</th><th>유형</th><th>소재지</th><th class='ctr'>진행상황</th>"+
+    "<th>조사 이력</th><th class='ctr'>인증현황</th><th>3T 가마</th><th class='ctr'>갱신</th><th>기업개요</th>"+
     EXTRACOLS.map(function(c){return "<th>"+esc(c.label)+"</th>"}).join("")+"</tr></thead><tbody>";
   rows.forEach(function(m){
     const pg={"완료":"p-ok","진행중":"p-info","확인필요":"p-warn","답변대기중":"p-gray"}[m.prog]||"p-gray";
     const rec=m.hist.filter(function(x){return x.d>=iso(ago(6))}).length;
+    const cg=certCG(m);
+    const cert=(cg?"<span class='pill p-ok'>CGMP</span>":"")+(m.iso?(cg?" ":"")+"<span class='pill p-info'>ISO</span>":"")||dim("—");
     h+="<tr class='clickrow' data-m='"+m.id+"'><td class='dim'>"+m.id+"</td><td><span class='nm'>"+esc(m.name)+"</span></td>"+
-      "<td>"+(m.ceo?esc(m.ceo):dim())+"</td><td>"+esc(m.region)+"</td>"+
+      "<td>"+(m.ceo?esc(m.ceo):dim())+"</td><td>"+esc(m.type)+"</td><td>"+esc(m.region)+"</td>"+
       "<td class='ctr'><span class='pill "+pg+"'>"+esc(m.prog)+"</span></td>"+
       "<td>"+(m.surveys.length?m.surveys.map(function(s){return "<span class='fl'>"+esc(s)+"</span>"}).join(""):dim("없음"))+"</td>"+
-      "<td class='ctr'>"+(m.cgmp?(m.cgmp.indexOf("가능")>=0?"<span class='pill p-ok'>보유</span>":"<span class='pill p-gray'>미보유</span>"):dim())+"</td>"+
+      "<td class='ctr'>"+cert+"</td>"+
       "<td>"+(m.g3?esc(m.g3):dim())+"</td>"+
       "<td class='ctr'>"+(rec?"<span class='pill p-info'>"+rec+"건</span>":dim("—"))+"</td>"+
       "<td class='wide'>"+(m.desc?esc(m.desc):dim())+"</td>"+
@@ -544,6 +610,7 @@ function drawC1(){
   });
 }
 document.getElementById("q1").addEventListener("input",function(e){q1=e.target.value;drawT1()});
+document.getElementById("refreshBtn").onclick=openRefreshModal;
 
 function openMaster(id){
   const m=byId(id); const cut=iso(ago(6));
@@ -552,8 +619,8 @@ function openMaster(id){
   let h="<div class='sh-h'><div class='k'>"+m.id+" · "+esc(m.region)+"</div><h3>"+esc(m.name)+"</h3>"+
     "<p>"+esc(m.desc||"기업개요 미기재")+"</p></div><div class='sh-b'>";
   h+="<label>기본정보</label><div class='map'>";
-  [["대표자명",m.ceo],["지역",m.region],["주소",m.addr],["확인담당자",m.owner],["진행상황",m.prog],
-   ["설립일",m.est],["홈페이지",m.site],["CGMP",m.cgmp],["3T 가마",m.g3],["보유 가마",m.gama],["총 CAPA",m.capa]]
+  [["대표자명",m.ceo],["유형",m.type],["소재지",m.addr],["진행상황",m.prog],
+   ["설립일",m.est],["홈페이지",m.site],["CGMP",m.cgmp],["ISO",m.iso],["3T 가마",m.g3],["보유 가마",m.gama],["총 CAPA",m.capa]]
   .forEach(function(r){
     h+="<div class='kv'><dt>"+r[0]+"</dt><dd>"+(r[1]?esc(r[1]):dim())+"</dd></div>";
   });
@@ -613,9 +680,10 @@ function matchRow(raw){
 }
 
 /* ============ TAB2 조사 ============ */
-const SYNC=[["","마스터 반영 안 함"],["g3","3T 가마"],["gama","보유 가마"],["cgmp","CGMP"],
-            ["capa","총 CAPA"],["ceo","대표자명"],["addr","주소"],["desc","기업개요"]];
-const SYNCLB={g3:"3T 가마",gama:"보유 가마",cgmp:"CGMP",capa:"총 CAPA",ceo:"대표자명",addr:"주소",desc:"기업개요"};
+const SYNC=[["","마스터 반영 안 함"],["type","유형"],["cgmp","CGMP"],["iso","ISO 인증"],
+            ["g3","3T 가마"],["gama","보유 가마"],["capa","총 CAPA"],
+            ["ceo","대표자명"],["addr","소재지"],["desc","기업개요"]];
+const SYNCLB={type:"유형",g3:"3T 가마",gama:"보유 가마",cgmp:"CGMP",iso:"ISO 인증",capa:"총 CAPA",ceo:"대표자명",addr:"소재지",desc:"기업개요"};
 /* 조사에서 마스터에 없던 항목을 업로드하면 동적으로 추가되는 마스터 열 */
 const EXTRACOLS=[];
 function ensureExtraCol(label){ let e=EXTRACOLS.filter(function(x){return x.label===label})[0];
@@ -877,7 +945,9 @@ function colRowHTML(i,c){
 }
 function drawCols(){
   const w=document.getElementById("colbox"); if(!w)return;
-  w.innerHTML=NEWCOLS.map(function(c,i){return colRowHTML(i,c)}).join("")||
+  w.innerHTML=NEWCOLS.length?
+    ("<div class='colhdr'><span>조사내용</span><span>기입방법</span><span>카테고리 (마스터 반영)</span><span></span></div>"+
+     NEWCOLS.map(function(c,i){return colRowHTML(i,c)}).join("")):
     "<div class='tip'>추가 항목이 없습니다. 마스터 정보만으로 조사합니다.</div>";
   w.querySelectorAll("[data-cl]").forEach(function(e){e.oninput=function(){NEWCOLS[+e.dataset.cl].label=e.value}});
   w.querySelectorAll("[data-ct]").forEach(function(e){e.onchange=function(){NEWCOLS[+e.dataset.ct].type=e.value}});
@@ -1505,7 +1575,7 @@ function switchTab(p){
 }
 document.querySelectorAll(".tab").forEach(function(t){t.onclick=function(){switchTab(t.dataset.p)}});
 
-drawC1();drawT1();drawT2();drawC3();drawT3();drawC4();drawCal4();drawE4();
+drawCatFilter();drawC1();drawT1();drawT2();drawC3();drawT3();drawC4();drawCal4();drawE4();
 /* 업체 행 선택(테두리) — 방문예정처 · 조사 · 등록평가 탭 */
 wireRowSelect(document.getElementById("t3"),"tbody tr");
 wireRowSelect(document.getElementById("t2"),".panel tbody tr");
