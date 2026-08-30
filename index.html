@@ -58,6 +58,40 @@ body{background:var(--canvas);color:var(--ink);
 .catf select{font:inherit;font-size:12px;font-weight:600;color:var(--ink);border:.5px solid var(--line-2);
  border-radius:8px;padding:4px 9px;background:#fff;cursor:pointer}
 .catf select:focus{outline:none;border-color:var(--navy)}
+/* 방문예정처 2주 미니 달력 */
+.mcal{margin-top:11px}
+.mc-h{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.mc-h b{font-size:12.5px;font-weight:700;color:var(--ink)}
+.mc-h .mc-range{font-size:11px;font-weight:600;color:var(--ink-3)}
+.mc-h .btn.sm{padding:2px 8px}
+.mc-grid{display:grid;grid-template-columns:repeat(14,1fr);gap:4px}
+.mc-d{position:relative;border:1px solid var(--line);border-radius:8px;padding:5px 2px 6px;text-align:center;background:var(--surface);min-height:44px;display:flex;flex-direction:column;align-items:center;gap:1px}
+.mc-d.we{background:#FAFAFC}
+.mc-d.has{border-color:var(--navy);background:var(--navy-50)}
+.mc-wd{font-size:9px;font-weight:700;color:var(--ink-3)}
+.mc-n{font-size:12.5px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+.mc-d.td .mc-n{color:var(--navy)}
+.mc-dot{width:15px;height:15px;line-height:15px;border-radius:50%;background:var(--navy);color:#fff;font-size:9px;font-weight:800;margin-top:1px}
+/* 방문통계 패널 */
+.statpanel{margin-top:11px;border:1px solid var(--line);border-radius:14px;background:var(--surface);
+ box-shadow:var(--shadow-card);padding:15px 16px;animation:rev .24s cubic-bezier(.25,.1,.25,1)}
+.st-hd{display:flex;align-items:baseline;gap:9px;margin-bottom:11px}
+.st-hd b{font-size:14px;font-weight:800}
+.st-kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:13px}
+.st-cols{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:13px}
+.st-box{border:1px solid var(--line);border-radius:11px;padding:11px 12px}
+.st-t{font-size:11px;font-weight:800;color:var(--ink-2);letter-spacing:.02em;margin-bottom:9px}
+.st-mo{display:flex;align-items:flex-end;gap:9px;height:66px}
+.st-mc{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;justify-content:flex-end}
+.st-mc .st-mb{width:70%;max-width:26px;background:var(--navy);border-radius:4px 4px 0 0}
+.st-mc .st-ml{font-size:9.5px;color:var(--ink-3);font-weight:600}
+.st-mc b{font-size:11px;font-weight:800}
+.st-br{display:flex;align-items:center;gap:7px;margin-bottom:6px;font-size:11px}
+.st-bl{flex:0 0 78px;color:var(--ink-2);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.st-bt{flex:1;height:7px;background:var(--line);border-radius:4px;overflow:hidden}
+.st-bt i{display:block;height:100%;border-radius:4px}
+.st-br b{font-variant-numeric:tabular-nums;font-weight:800;min-width:16px;text-align:right}
+@media (max-width:720px){.st-kpi{grid-template-columns:repeat(2,1fr)}.st-cols{grid-template-columns:1fr}}
 .chips{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;padding-top:10px}
 .chips::-webkit-scrollbar{display:none}
 .chip{flex:0 0 auto;border:none;cursor:pointer;background:var(--navy-50);color:var(--ink-2);font:inherit;
@@ -406,8 +440,12 @@ thead th.sk{z-index:45}
   <div class="tool">
     <div class="trow"><span class="title">방문예정처</span>
       <span class="note">출발 기준 · 세종 전의면 산단길 22-17</span>
-      <span class="spacer"></span><button class="btn">＋ 신규 등록</button><button class="btn pri">Excel 저장</button></div>
+      <span class="spacer"></span><button class="btn">＋ 신규 등록</button>
+      <button class="btn" id="statBtn" aria-pressed="false">📊 방문통계</button>
+      <button class="btn pri">Excel 저장</button></div>
     <div class="chips" id="c3"></div>
+    <div id="stat3" class="statpanel" hidden></div>
+    <div id="mcal3" class="mcal"></div>
     <div class="gts" id="g3"><span class="lb">열 그룹</span></div>
   </div>
   <div class="body">
@@ -1388,6 +1426,8 @@ function drawT3(){
   }});
   document.querySelectorAll("[data-ve]").forEach(function(b){b.onclick=function(){openEval(+b.dataset.ve)}});
   paintTrips();
+  drawMini3();
+  const sp=document.getElementById("stat3"); if(sp&&!sp.hidden)drawStats();
 }
 function drawC3(){
   const c=document.getElementById("c3"); c.innerHTML="";
@@ -1514,6 +1554,62 @@ function drawE4(){
 function isoLocal(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 function weekMonday(d){const x=new Date(d);x.setHours(0,0,0,0);const off=(x.getDay()+6)%7;x.setDate(x.getDate()-off);return x;}
 function visitDates(){return VISITS.filter(function(v){return v.fix&&/^\d{4}-\d{2}-\d{2}$/.test(v.fix)&&v.st!=="cxl";});}
+/* ===== 방문예정처 · 2주 확정일정 미니 달력 ===== */
+let mcalBase=null;
+function drawMini3(){
+  const c=document.getElementById("mcal3"); if(!c)return;
+  if(!mcalBase){ const vs=visitDates(); let base=weekMonday(TODAY);
+    if(vs.length){let best=null,bd=Infinity;vs.forEach(function(v){const d=new Date(v.fix+"T00:00:00"),df=Math.abs(d-TODAY);if(df<bd){bd=df;best=d;}});base=weekMonday(best);}
+    mcalBase=base; }
+  const wd=["월","화","수","목","금","토","일"];
+  const days=[]; for(let i=0;i<14;i++){const d=new Date(mcalBase);d.setDate(d.getDate()+i);days.push(d);}
+  const byDay={}; visitDates().forEach(function(v){(byDay[v.fix]=byDay[v.fix]||[]).push(v);});
+  const end=days[13];
+  let h="<div class='mc-h'><b>방문 확정 일정</b><span class='mc-range'>"+
+    (mcalBase.getMonth()+1)+"/"+mcalBase.getDate()+" – "+(end.getMonth()+1)+"/"+end.getDate()+" · 2주</span>"+
+    "<span class='spacer'></span><button class='btn sm' data-mc='-1'>◀</button>"+
+    "<button class='btn sm' data-mc='0'>이번주</button><button class='btn sm' data-mc='1'>▶</button></div><div class='mc-grid'>";
+  days.forEach(function(d){
+    const isoD=isoLocal(d), list=byDay[isoD]||[], wk=(d.getDay()+6)%7, today=isoD===isoLocal(TODAY);
+    h+="<div class='mc-d"+(wk>=5?" we":"")+(list.length?" has":"")+(today?" td":"")+"' title='"+
+      (list.length?esc(list.map(function(v){return (v.time?v.time+" ":"")+v.co}).join(" · ")):"")+"'>"+
+      "<span class='mc-wd'>"+wd[wk]+"</span><span class='mc-n'>"+d.getDate()+"</span>"+
+      (list.length?"<span class='mc-dot'>"+(list.length>1?list.length:"")+"</span>":"")+"</div>";
+  });
+  h+="</div>";
+  c.innerHTML=h;
+  c.querySelectorAll("[data-mc]").forEach(function(b){b.onclick=function(){const v=+b.dataset.mc;
+    if(v===0)mcalBase=weekMonday(TODAY); else{mcalBase=new Date(mcalBase);mcalBase.setDate(mcalBase.getDate()+v*14);} drawMini3();}});
+}
+/* ===== 방문통계 패널 ===== */
+function drawStats(){
+  const c=document.getElementById("stat3"); if(!c)return;
+  const vs=VISITS, confirmed=vs.filter(function(v){return v.fix});
+  const cnt={}; Object.keys(VST).forEach(function(k){cnt[k]=0}); vs.forEach(function(v){cnt[v.st]=(cnt[v.st]||0)+1});
+  const done=confirmed.length, reg=(cnt.reg||0)+(cnt.done||0), drop=(cnt.ng||0)+(cnt.cxl||0), hold=cnt.etc||0;
+  const regRate=done?Math.round(reg/done*100):0, dropRate=done?Math.round(drop/done*100):0;
+  const thisMo=isoLocal(TODAY).slice(0,7);
+  const moCnt=confirmed.filter(function(v){return v.fix.slice(0,7)===thisMo}).length;
+  const byMonth={}; confirmed.forEach(function(v){const mo=v.fix.slice(0,7); byMonth[mo]=(byMonth[mo]||0)+1;});
+  const months=Object.keys(byMonth).sort(); const moMax=Math.max.apply(null,months.map(function(m){return byMonth[m]}).concat([1]));
+  const byType={}; vs.forEach(function(v){const m=byId(v.mid), t=(m&&m.type)||"기타"; byType[t]=(byType[t]||0)+1;});
+  const byPick={}; vs.forEach(function(v){const k=v.picker||"미지정"; byPick[k]=(byPick[k]||0)+1;});
+  function bars(obj,color){const keys=Object.keys(obj).sort(function(a,b){return obj[b]-obj[a]}); const mx=Math.max.apply(null,keys.map(function(k){return obj[k]}).concat([1]));
+    return keys.map(function(k){return "<div class='st-br'><span class='st-bl'>"+esc(k)+"</span><span class='st-bt'><i style='width:"+Math.round(obj[k]/mx*100)+"%;background:"+color+"'></i></span><b>"+obj[k]+"</b></div>";}).join("");}
+  let h="<div class='st-hd'><b>방문통계</b><span class='dim'>확정 방문 "+done+"건 기준</span></div>";
+  h+="<div class='st-kpi'>"+
+    "<div class='sc'><b>"+done+"</b><i>확정 방문</i></div>"+
+    "<div class='sc ok'><b>"+regRate+"%</b><i>등록율 ("+reg+")</i></div>"+
+    "<div class='sc wr'><b>"+dropRate+"%</b><i>드롭율 ("+drop+")</i></div>"+
+    "<div class='sc nw'><b>"+moCnt+"</b><i>이번달 방문</i></div></div>";
+  h+="<div class='st-cols'>";
+  h+="<div class='st-box'><div class='st-t'>월별 방문</div>"+(months.length?"<div class='st-mo'>"+
+    months.map(function(m){return "<div class='st-mc'><span class='st-mb' style='height:"+Math.round(byMonth[m]/moMax*46+6)+"px'></span><span class='st-ml'>"+m.slice(5)+"</span><b>"+byMonth[m]+"</b></div>";}).join("")+"</div>":"<div class='dim' style='font-size:11px'>데이터 없음</div>")+"</div>";
+  h+="<div class='st-box'><div class='st-t'>업체 유형</div>"+bars(byType,"var(--navy)")+"</div>";
+  h+="<div class='st-box'><div class='st-t'>선정주체</div>"+bars(byPick,"#5E8A62")+"</div>";
+  h+="</div>";
+  c.innerHTML=h;
+}
 let calMonday=null;
 function initCalWeek(){
   const vs=visitDates(); let base=TODAY;
@@ -1576,6 +1672,11 @@ function switchTab(p){
 document.querySelectorAll(".tab").forEach(function(t){t.onclick=function(){switchTab(t.dataset.p)}});
 
 drawCatFilter();drawC1();drawT1();drawT2();drawC3();drawT3();drawC4();drawCal4();drawE4();
+document.getElementById("statBtn").onclick=function(){
+  const sp=document.getElementById("stat3"), on=sp.hidden;
+  sp.hidden=!on; this.setAttribute("aria-pressed",on?"true":"false");
+  if(on)drawStats();
+};
 /* 업체 행 선택(테두리) — 방문예정처 · 조사 · 등록평가 탭 */
 wireRowSelect(document.getElementById("t3"),"tbody tr");
 wireRowSelect(document.getElementById("t2"),".panel tbody tr");
