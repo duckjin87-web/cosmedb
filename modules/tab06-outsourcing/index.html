@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<title>협력생산 운영 인사이트</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700;800&display=swap">
+<style>
+/* Layout: CosmeDB Material 3 대장 톤 — 좁은 본문 칼럼에 진단 → 지도 → 차트 → 시뮬레이터 → 실행안 순서로 쌓는 보고서형 모듈 */
+:root{
+  --bg:#F4F4FA; --surface:#FCFCFF; --surface-2:#EEF0FB;
+  --ink:#1A1B21; --ink-2:#5E606B; --ink-3:#8C8E9A;
+  --line:#E6E7EF; --line-2:#D2D4E0;
+  --accent:#3A5BDC; --accent-ink:#FFFFFF; --accent-soft:#DFE3F8;
+  --good:#1E8E4E; --warn:#C98500; --serious:#D2562B; --none:#C9CAD3;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a;
+  --shadow:0 1px 2px rgba(24,28,58,.06),0 1px 3px 1px rgba(24,28,58,.05);
+  --f-body:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --f-num:"Roboto","Noto Sans KR",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121318; --surface:#1B1C22; --surface-2:#232845;
+  --ink:#E4E5EE; --ink-2:#B0B2BF; --ink-3:#8A8C99;
+  --line:#2C2E37; --line-2:#3A3C46;
+  --accent:#9AABFF; --accent-ink:#121318; --accent-soft:#2C3460;
+  --good:#4CC27F; --warn:#E0A53A; --serious:#F07B4E; --none:#4A4C57;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70;
+  --shadow:0 1px 2px rgba(0,0,0,.4);
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121318; --surface:#1B1C22; --surface-2:#232845;
+  --ink:#E4E5EE; --ink-2:#B0B2BF; --ink-3:#8A8C99;
+  --line:#2C2E37; --line-2:#3A3C46;
+  --accent:#9AABFF; --accent-ink:#121318; --accent-soft:#2C3460;
+  --good:#4CC27F; --warn:#E0A53A; --serious:#F07B4E; --none:#4A4C57;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70;
+  --shadow:0 1px 2px rgba(0,0,0,.4);
+  color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6;margin:0}
+.wrap{max-width:1080px;margin:0 auto;padding-inline:20px;padding-block:28px 64px;display:flex;flex-direction:column;gap:40px}
+h1,h2,h3{text-wrap:balance;margin:0;line-height:1.3}
+h1{font-size:clamp(26px,4vw,34px);font-weight:800;letter-spacing:-.02em}
+h2{font-size:21px;font-weight:800;letter-spacing:-.01em}
+h3{font-size:15px;font-weight:700}
+p{margin:0}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--accent);text-transform:uppercase}
+.lede{color:var(--ink-2);max-width:68ch}
+.muted{color:var(--ink-3);font-size:13px}
+.sec{display:flex;flex-direction:column;gap:16px}
+.sec-hd{display:flex;flex-direction:column;gap:6px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:var(--shadow);min-width:0}
+.hd{display:flex;flex-direction:column;gap:12px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.hd-meta{display:flex;flex-wrap:wrap;gap:8px}
+.tag{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:3px 10px;border-radius:999px;background:var(--surface-2);color:var(--ink-2);border:1px solid var(--line)}
+/* findings */
+.finds{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.find{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.find .big{font-family:var(--f-num);font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1.1;font-variant-numeric:tabular-nums}
+.find .big small{font-size:15px;color:var(--ink-2);font-weight:500;margin-left:2px}
+.find .k{font-size:13px;font-weight:700}
+.find .d{font-size:13px;color:var(--ink-2)}
+/* coverage map */
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%}
+.cov{min-width:820px;font-size:13px}
+.cov th,.cov td{border-bottom:1px solid var(--line);padding:8px 6px;text-align:left;vertical-align:middle}
+.cov thead th{font-size:12px;color:var(--ink-2);font-weight:700;white-space:nowrap}
+.cov thead th .st{display:block;font-weight:400;color:var(--ink-3);font-size:11px}
+.cov tbody th{font-weight:700;white-space:nowrap}
+.cov tbody th small{display:block;font-weight:400;color:var(--ink-3);font-size:11px}
+.cell{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink);white-space:nowrap}
+.dot{width:10px;height:10px;border-radius:3px;flex:none;background:var(--none)}
+.dot.auto{background:var(--good)}.dot.semi{background:var(--warn)}.dot.manual{background:var(--serious)}
+.cov tfoot td,.cov tfoot th{font-weight:700;border-bottom:0;padding-top:10px}
+.gapcol{background:color-mix(in srgb,var(--serious) 9%,transparent)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+/* bars */
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:inherit;font-size:13px;padding:5px 12px;border-radius:999px;border:1px solid var(--line-2);background:var(--surface);color:var(--ink-2);cursor:pointer}
+.chip:hover{border-color:var(--accent);color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:500}
+.chip:focus-visible,button:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.bars{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.bar-row{display:grid;grid-template-columns:minmax(120px,190px) 1fr 74px;gap:10px;align-items:center;font-size:13px;padding:2px 0;border-radius:6px}
+.bar-row:hover{background:var(--surface-2)}
+.bar-row .lab{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-row .lab code{font-family:var(--f-num);font-size:11px;color:var(--ink-3);margin-right:6px}
+.track{position:relative;height:14px;background:linear-gradient(90deg,var(--line) 1px,transparent 1px) 0 0/25% 100%}
+.fill{position:absolute;left:0;top:1px;bottom:1px;background:var(--accent);border-radius:0 4px 4px 0;min-width:2px}
+.fill.low{background:var(--serious)}
+.bar-row .val{font-family:var(--f-num);font-variant-numeric:tabular-nums;text-align:right;color:var(--ink-2)}
+.axis{display:grid;grid-template-columns:minmax(120px,190px) 1fr 74px;gap:10px;font-size:11px;color:var(--ink-3)}
+.axis .ticks{display:flex;justify-content:space-between;font-family:var(--f-num)}
+/* split bars */
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.stack{display:flex;height:22px;gap:2px;margin:10px 0 8px}
+.stack > div{height:100%;min-width:3px}
+.stack > div:first-child{border-radius:4px 0 0 4px}.stack > div:last-child{border-radius:0 4px 4px 0}
+.stack-leg{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--ink-2)}
+.stack-leg span{display:inline-flex;align-items:center;gap:6px}
+.stack-leg b{color:var(--ink);font-family:var(--f-num);font-weight:500}
+.mini{display:flex;flex-direction:column;gap:4px;padding-block:10px;border-top:1px solid var(--line)}
+.mini:first-of-type{border-top:0}
+/* simulator */
+.sim{display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:start}
+.sim-form{display:flex;flex-direction:column;gap:14px}
+.fld{display:flex;flex-direction:column;gap:6px}
+.fld > label,.fld > .fl{font-size:12px;font-weight:700;color:var(--ink-2)}
+select{font:inherit;font-size:14px;padding:6px 10px;border-radius:8px;border:1px solid var(--line-2);background:var(--surface);color:var(--ink)}
+.sum{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:13px;color:var(--ink-2);padding-bottom:10px;border-bottom:1px solid var(--line)}
+.sum b{font-family:var(--f-num);font-size:20px;color:var(--ink);margin-right:3px}
+.rk{font-size:13px;min-width:560px}
+.rk th,.rk td{padding:9px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.rk th{font-size:12px;color:var(--ink-2);font-weight:700}
+.rk .r{font-family:var(--f-num);color:var(--ink-3);width:28px}
+.meter{display:flex;gap:2px;margin-top:4px}
+.meter i{display:block;width:12px;height:6px;border-radius:2px;background:var(--line-2)}
+.meter i.ok{background:var(--good)}.meter i.re{background:var(--warn)}
+.rq{display:flex;flex-wrap:wrap;gap:4px}
+.rq span{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;padding:1px 7px;border-radius:6px;border:1px solid var(--line);white-space:nowrap}
+.rq .dot{width:8px;height:8px;border-radius:2px}
+.dot.ok{background:var(--good)}.dot.re{background:var(--warn)}.dot.no{background:var(--serious)}.dot.un{background:var(--none)}
+.act{font-size:12.5px;font-weight:500;white-space:nowrap}
+/* matrix */
+.mx{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:18px;align-items:start}
+.mx svg{width:100%;height:auto;display:block}
+.mx svg text{fill:var(--ink-2);font-family:var(--f-num);font-size:11px}
+.mx svg .ql{fill:var(--ink-3);font-family:var(--f-body);font-size:11px}
+.mx svg .pt text{fill:#fff;font-size:10.5px;font-weight:700;pointer-events:none}
+.mx svg .pt circle{stroke:var(--surface);stroke-width:2;cursor:pointer}
+.mx svg .pt:hover circle,.mx svg .pt.on circle{stroke:var(--ink);}
+.oplist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;font-size:13px}
+.oplist li{display:grid;grid-template-columns:22px 1fr;gap:8px;padding:5px 6px;border-radius:6px;cursor:default}
+.oplist li:hover,.oplist li.on{background:var(--surface-2)}
+.oplist .n{width:20px;height:20px;border-radius:50%;color:#fff;font-family:var(--f-num);font-size:11px;font-weight:700;display:grid;place-items:center}
+.oplist small{display:block;color:var(--ink-3);font-size:11.5px}
+/* kpi table */
+.kpi{font-size:13px;min-width:760px}
+.kpi th,.kpi td{padding:10px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.kpi thead th{font-size:12px;color:var(--ink-2)}
+.kpi td.f{font-family:var(--f-num);font-size:12px;color:var(--ink-2)}
+.st-pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap}
+/* flow */
+.flow{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch}
+.node{flex:1 1 150px;min-width:0;border:1px solid var(--line-2);border-radius:12px;padding:12px;background:var(--surface);display:flex;flex-direction:column;gap:4px;position:relative}
+.node.new{border:1.5px dashed var(--accent);background:var(--surface-2)}
+.node .t{font-weight:700;font-size:14px}
+.node .r{font-size:11px;font-family:var(--f-num);color:var(--ink-3)}
+.node .d{font-size:12px;color:var(--ink-2)}
+.node .badge{align-self:flex-start;font-size:11px;font-weight:700;color:var(--accent-ink);background:var(--accent);padding:1px 8px;border-radius:999px}
+.keybar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px;color:var(--ink-2);padding:10px 14px;border-radius:10px;background:var(--surface-2)}
+.keybar b{color:var(--ink)}
+/* roadmap */
+.road{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.ph{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+.ph .when{font-family:var(--f-num);font-size:12px;color:var(--ink-3)}
+.ph ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:13.5px}
+.ph li small{display:block;color:var(--ink-3);font-size:12px}
+.ph .swatch{width:12px;height:12px;border-radius:3px;display:inline-block;margin-right:6px;vertical-align:-1px}
+/* tooltip */
+.tip{position:fixed;z-index:10;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12px;line-height:1.45;padding:7px 10px;border-radius:8px;max-width:260px;box-shadow:0 4px 14px rgba(0,0,0,.2)}
+.foot{font-size:12px;color:var(--ink-3);border-top:1px solid var(--line);padding-top:16px;display:flex;flex-direction:column;gap:4px}
+@media (max-width:820px){.sim,.mx{grid-template-columns:1fr}}
+@media (max-width:520px){.wrap{padding-inline:16px}.bar-row,.axis{grid-template-columns:110px 1fr 58px;gap:8px}.panel{padding:16px}}
+@media (prefers-reduced-motion:no-preference){.fill{transition:width .4s ease}}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+
+<header class="hd">
+  <span class="eyebrow">CosmeDB · TAB 06 · 협력생산 운영</span>
+  <h1>협력생산 운영 인사이트</h1>
+  <p class="lede">화장품 외주(협력) 생산관리 업무를 지금 있는 도구 다섯 개(트렌드 TAB05, vendor-scout, CosmeDB, 방문예정처, 스케줄러) 기준으로 진단했습니다. 신규처 발굴에서 등록까지는 이미 상당 부분 자동화돼 있지만, 등록 이후 발주·납기·입고 품질 단계는 도구가 비어 있습니다. 이 모듈은 그 공백과 우선순위, 그리고 바로 써볼 수 있는 외주처 자동 배정 로직을 함께 보여줍니다.</p>
+  <div class="hd-meta">
+    <span class="tag">근거: 5개 저장소 문서·코드</span>
+    <span class="tag">역량 채움률: 실제 마스터 63개사 집계(CAPABILITY-DICTIONARY.md)</span>
+    <span class="tag">시뮬레이터·신선도: 데모 데이터 30개사(가상 업체)</span>
+  </div>
+</header>
+
+<section class="sec" aria-labelledby="s-find">
+  <div class="sec-hd"><h2 id="s-find">핵심 진단</h2></div>
+  <div class="finds">
+    <div class="find"><span class="k">등록 이후 단계 도구 공백</span><span class="big num">3<small>/ 9단계</small></span><p class="d">발주·생산일정, 입고·품질, 정기 재평가(G5)를 받쳐주는 도구가 없습니다. 실제 외주관리 시간이 가장 많이 드는 구간입니다.</p></div>
+    <div class="find"><span class="k">캐파 데이터 채움률</span><span class="big num">8<small>% 평균</small></span><p class="d">월 캐파 6%, MOQ 0%, 리드타임 19%. 외주 배정에 꼭 필요한 항목이 가장 비어 있고, 유효기간도 6개월로 가장 짧습니다.</p></div>
+    <div class="find"><span class="k">업체 자기신고 의존도</span><span class="big num" id="fSelf">—</span><p class="d">역량값 대부분이 업체 회신(B등급)입니다. 공공데이터(A등급)로 대체할 수 있는 항목은 vendor-scout로 자동 승격할 수 있습니다.</p></div>
+    <div class="find"><span class="k">팀 공유 불가</span><span class="big num">4<small>/ 4 도구</small></span><p class="d">CosmeDB(메모리)·방문예정처·스케줄러(localStorage)·TAB05 사용자 설정이 모두 브라우저 안에만 있어 팀원 간 실시간 공유가 안 됩니다. 자동화의 전제 조건입니다.</p></div>
+  </div>
+</section>
+
+<section class="sec" aria-labelledby="s-map">
+  <div class="sec-hd">
+    <h2 id="s-map">업무 단계별 자동화 지도</h2>
+    <p class="lede">외주관리 9단계에서 각 도구가 어느 수준까지 받쳐주는지 정리했습니다. 붉게 칠한 열은 담당 도구가 없는 단계입니다.</p>
+  </div>
+  <div class="panel">
+    <div class="legend" style="margin-bottom:10px">
+      <span><i class="dot auto"></i>자동 (사람 개입 없이 수집·계산)</span>
+      <span><i class="dot semi"></i>반자동 (입력하면 계산·연결)</span>
+      <span><i class="dot manual"></i>수작업 (메일·엑셀·개인 메모)</span>
+      <span><i class="dot"></i>해당 없음</span>
+    </div>
+    <div class="scroll"><table class="cov" id="covTable"></table></div>
+  </div>
+</section>
+
+<section class="sec" aria-labelledby="s-cap">
+  <div class="sec-hd">
+    <h2 id="s-cap">역량 항목 채움률</h2>
+    <p class="lede">마스터 63개사 중 각 역량 항목 값을 가진 업체 비율입니다. 10% 미만은 주황으로 표시했습니다. 외주 배정 판단에 직접 쓰이는 캐파·충전 항목이 가장 비어 있어, 배정 때마다 전화로 다시 묻는 구조가 생깁니다.</p>
+  </div>
+  <div class="panel">
+    <div class="chips" id="capChips" role="group" aria-label="항목 그룹 필터"></div>
+    <div class="bars" id="capBars"></div>
+    <div class="axis" aria-hidden="true"><span></span><span class="ticks"><span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></span><span></span></div>
+  </div>
+</section>
+
+<section class="sec" aria-labelledby="s-q">
+  <div class="sec-hd">
+    <h2 id="s-q">데이터 신뢰도와 신선도</h2>
+    <p class="lede">데모 데이터의 역량값 161건과 업체 30개사로 계산했습니다. 실제 데이터로 바꾸면 같은 계산이 그대로 돌아갑니다.</p>
+  </div>
+  <div class="two">
+    <div class="panel">
+      <div class="mini"><h3>출처 신뢰등급</h3><div class="stack" id="stGrade"></div><div class="stack-leg" id="lgGrade"></div></div>
+      <div class="mini"><h3>유효기간(TTL) 상태</h3><div class="stack" id="stTtl"></div><div class="stack-leg" id="lgTtl"></div></div>
+    </div>
+    <div class="panel">
+      <div class="mini"><h3>업체 조사 진행상황</h3><div class="stack" id="stProg"></div><div class="stack-leg" id="lgProg"></div></div>
+      <div class="mini"><h3>수집 경로</h3><div class="stack" id="stSrc"></div><div class="stack-leg" id="lgSrc"></div></div>
+    </div>
+  </div>
+  <p class="muted" id="qNote"></p>
+</section>
+
+<section class="sec" aria-labelledby="s-sim">
+  <div class="sec-hd">
+    <h2 id="s-sim">외주처 자동 배정 시뮬레이터</h2>
+    <p class="lede">신제품 외주 의뢰 조건을 고르면 마스터 역량값으로 후보를 순위화하고, 모르는 항목은 문진 질문으로, 기한이 지난 항목은 재확인 요청으로 자동 분류합니다. CosmeDB의 '같은 질문 두 번 하지 않기' 원칙을 배정 단계까지 넓힌 것입니다.</p>
+  </div>
+  <div class="sim">
+    <div class="panel sim-form">
+      <div class="fld"><span class="fl">제형</span><div class="chips" data-req="FM"></div></div>
+      <div class="fld"><span class="fl">충전 형태</span><div class="chips" data-req="EQF"></div></div>
+      <div class="fld"><span class="fl">인증</span><div class="chips" data-req="CE"></div></div>
+      <div class="fld"><label for="selKettle">유화기 최대용량</label>
+        <select id="selKettle"><option value="0">조건 없음</option><option value="1">1T 이상</option><option value="3" selected>3T 이상</option><option value="5">5T 이상</option></select></div>
+      <div class="fld"><label for="selCapa">월 생산 캐파</label>
+        <select id="selCapa"><option value="0" selected>조건 없음</option><option value="100">100만개 이상</option><option value="200">200만개 이상</option></select></div>
+      <div class="fld"><label for="selLead">리드타임</label>
+        <select id="selLead"><option value="0" selected>조건 없음</option><option value="30">30일 이내</option><option value="40">40일 이내</option></select></div>
+      <p class="muted">초기값은 예시 의뢰(CGMP · 3T 이상 유화기 · 대용량 벌크)입니다. 제형·충전 조건을 더하면 미확인 항목이 문진 질문으로 바뀌는 것을 볼 수 있습니다.</p>
+    </div>
+    <div class="panel" style="display:flex;flex-direction:column;gap:12px">
+      <div class="sum" id="simSum"></div>
+      <div class="legend"><span><i class="dot ok"></i>충족(유효)</span><span><i class="dot re"></i>충족·기한 지남</span><span><i class="dot un"></i>미확인</span><span><i class="dot no"></i>불충족</span></div>
+      <div class="scroll"><table class="rk" id="simTable"></table></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" aria-labelledby="s-mx">
+  <div class="sec-hd">
+    <h2 id="s-mx">자동화 과제 우선순위</h2>
+    <p class="lede">과제 12개를 효과와 구현 난이도로 배치했습니다. 왼쪽 위가 먼저 할 일입니다. 점수는 저장소 코드 상태를 보고 매긴 판단값이며, 색은 로드맵 단계입니다.</p>
+  </div>
+  <div class="panel mx">
+    <div>
+      <svg id="mxSvg" viewBox="0 0 520 400" role="img" aria-label="자동화 과제 효과-난이도 매트릭스"></svg>
+      <div class="legend" style="margin-top:6px"><span><i class="dot" style="background:var(--s1)"></i>1단계 · 데이터 기반</span><span><i class="dot" style="background:var(--s2)"></i>2단계 · 수집 자동화</span><span><i class="dot" style="background:var(--s3)"></i>3단계 · 생산 운영</span></div>
+    </div>
+    <ol class="oplist" id="mxList"></ol>
+  </div>
+</section>
+
+<section class="sec" aria-labelledby="s-flow">
+  <div class="sec-hd">
+    <h2 id="s-flow">모듈 연결 구조</h2>
+    <p class="lede">기존 도구를 한 줄로 이으면 수요 신호에서 생산 실적까지 닫힌 고리가 됩니다. 점선 상자가 새로 붙일 모듈입니다. 모든 연결은 하나의 업체 키로 합니다.</p>
+  </div>
+  <div class="panel" style="display:flex;flex-direction:column;gap:12px">
+    <div class="flow">
+      <div class="node"><span class="r">moduel05</span><span class="t">TAB05 트렌드</span><span class="d">기후·사회·경제·문화 신호 → 제형 수요 예측, TRACK B 신규처 후보</span></div>
+      <div class="node"><span class="r">vendor-scout</span><span class="t">L0 공공데이터 검증</span><span class="d">사업자번호·CGMP·회수·국민연금·재무, A~D 신뢰등급</span></div>
+      <div class="node"><span class="r">cosmedb</span><span class="t">마스터 · L1 조사</span><span class="d">역량 사전 22항목, 기보유/재확인/신규 자동 분류</span></div>
+      <div class="node"><span class="r">Visit_schedule</span><span class="t">L2 방문 · 등록</span><span class="d">공통 가능일, 이동시간, Capa 회신 7일 알림</span></div>
+      <div class="node new"><span class="badge">신규 TAB06</span><span class="t">생산 운영</span><span class="d">자동 배정 → 발주(PO) → 납기 추적 → 입고 QC·부적합</span></div>
+      <div class="node new"><span class="badge">신규</span><span class="t">업체 스코어카드</span><span class="d">납기·품질·회신 실적을 역량값으로 되돌려 마스터 갱신</span></div>
+    </div>
+    <div class="keybar"><b>공통 키</b> 사업자번호(biz_no) → 업체ID(V001…) <span class="muted">·</span> <b>공유 저장소</b> 구글시트 + Apps Script (DEPLOY.md 권장안) <span class="muted">·</span> <b>일정</b> 스케줄러로 방문·납기일 ICS 연동</div>
+  </div>
+</section>
+
+<section class="sec" aria-labelledby="s-kpi">
+  <div class="sec-hd">
+    <h2 id="s-kpi">외주관리 KPI 제안</h2>
+    <p class="lede">자동 수집이 붙으면 매주 손으로 집계하지 않아도 되는 지표들입니다. '지금 측정' 열은 현재 도구로 바로 계산되는지 여부입니다.</p>
+  </div>
+  <div class="panel"><div class="scroll"><table class="kpi" id="kpiTable"></table></div></div>
+</section>
+
+<section class="sec" aria-labelledby="s-road">
+  <div class="sec-hd"><h2 id="s-road">적용 로드맵</h2></div>
+  <div class="road" id="road"></div>
+</section>
+
+<footer class="foot">
+  <span>근거 파일: cosmedb/docs(WORKFLOW·CAPABILITY-DICTIONARY·MIGRATION·DEPLOY), cosmedb/data/*.demo.json, vendor-scout/docs/API_SOURCES.md, moduel05/.github/workflows/collect-trends.yml, Visit_schedule·scheduler README.</span>
+  <span>시뮬레이터와 신선도 수치는 가상 업체 데모 데이터로 계산했습니다. 실제 협력업체 정보는 포함돼 있지 않습니다.</span>
+</footer>
+</div>
+
+<div class="tip" id="tip" hidden></div>
+
+<script>
+const DEMO_V=[["V001","누리랩","서울","완료"],["V002","가온화장품","인천","확인필요"],["V003","라온랩","충북","답변대기중"],["V004","단아케미칼","경북","완료"],["V005","사랑코스텍","경북","진행중"],["V006","여울코스메틱","인천","완료"],["V007","마루코스텍","경기","답변대기중"],["V008","마루바이오","전북","확인필요"],["V009","타래랩","인천","완료"],["V010","한별바이오","충남","답변대기중"],["V011","은결테크","경기","답변대기중"],["V012","한별케미칼","경북","완료"],["V013","아라코스메틱","경기","완료"],["V014","다래테크","대전","완료"],["V015","나린코스","경북","답변대기중"],["V016","라온코스메틱","경남","진행중"],["V017","가온코스","인천","답변대기중"],["V018","나린팩","서울","완료"],["V019","아라테크","대전","확인필요"],["V020","누리코스텍","충남","완료"],["V021","차온바이오","충남","확인필요"],["V022","차온테크","인천","완료"],["V023","바림뷰티랩","충남","완료"],["V024","은결코스메틱","충북","진행중"],["V025","다래팩","전북","완료"],["V026","여울케미칼","인천","확인필요"],["V027","은결코스텍","경기","확인필요"],["V028","다래화장품","경남","확인필요"],["V029","새롬팩","충북","진행중"],["V030","새롬테크","대전","답변대기중"]];
+const DEMO_C=[["V001","EQ01","5.0","B",15],["V001","EQ02","1","B",14],["V001","CE01","Y","A",4],["V001","CP01","80","B",7],["V001","FM04","Y","B",12],["V001","CP03","45","B",7],["V001","EQ03","N","C",6],["V002","EQ01","6.0","B",2],["V002","EQ02","1","B",14],["V002","CE01","Y","A",8],["V002","CP01","200","B",11],["V002","EQ07","Y","A",1],["V003","EQ07","Y","A",4],["V003","CP03","25","B",3],["V003","EQ03","Y","C",6],["V004","EQ01","1.0","B",1],["V004","EQ02","2","B",8],["V004","CE01","Y","A",3],["V004","CP01","250","B",7],["V004","FM02","Y","B",9],["V004","FM03","Y","B",4],["V005","EQ01","3.0","B",2],["V005","EQ02","2","B",8],["V005","CE01","Y","A",8],["V005","RK01","60","A",1],["V006","EQ01","2.0","B",5],["V006","EQ02","3","B",14],["V006","CE01","N","A",3],["V006","EQ05","Y","B",5],["V006","RK01","14","A",2],["V006","CP03","35","B",13],["V006","EQ03","Y","C",16],["V007","EQ01","1.0","B",1],["V007","EQ02","2","B",4],["V007","CE01","Y","A",2],["V007","CE02","Y","A",2],["V007","EQ03","Y","C",16],["V007","EQ04","Y","B",6],["V008","EQ01","6.0","B",7],["V008","EQ02","1","B",6],["V008","CE01","Y","A",1],["V008","RK01","14","A",2],["V008","EQ03","Y","C",16],["V009","EQ01","1.0","B",2],["V009","EQ02","2","B",2],["V009","CE01","Y","A",1],["V009","CP01","200","B",7],["V009","CP03","30","B",13],["V010","CE01","Y","A",8],["V010","CP01","150","B",4],["V010","EQ07","Y","A",2],["V010","CP03","45","B",7],["V010","EQ03","N","C",6],["V011","CE01","N","A",2],["V011","CP01","200","B",4],["V011","RK01","60","A",3],["V011","EQ03","Y","C",6],["V012","EQ01","5.0","B",15],["V012","EQ02","2","B",6],["V012","CP01","200","B",2],["V013","EQ01","3.0","B",2],["V013","EQ02","2","B",2],["V013","CP01","200","B",2],["V013","FM04","Y","B",3],["V013","CP03","35","B",9],["V014","EQ01","6.0","B",3],["V014","EQ02","1","B",14],["V014","CE01","Y","A",4],["V014","EQ05","Y","B",5],["V014","CP03","30","B",9],["V015","EQ01","5.0","B",5],["V015","EQ02","2","B",4],["V015","CE01","Y","A",2],["V015","CP01","300","B",11],["V015","FM04","Y","B",12],["V015","CP03","45","B",13],["V016","EQ01","3.0","B",13],["V016","EQ02","1","B",2],["V016","CE01","Y","A",1],["V016","CP01","200","B",2],["V016","RK01","31","A",1],["V017","EQ01","5.0","B",13],["V017","EQ02","2","B",14],["V017","FM01","Y","B",10],["V017","FM02","Y","B",5],["V017","QA01","Y","A",2],["V017","EQ03","N","C",16],["V018","CE01","N","A",8],["V018","CP01","150","B",9],["V018","FM04","Y","B",12],["V018","RK01","22","A",1],["V018","EQ03","N","C",10],["V019","CE01","N","A",2],["V019","CP01","200","B",2],["V019","EQ07","Y","A",1],["V019","RK01","31","A",3],["V019","EQ03","N","C",6],["V020","EQ01","3.0","B",15],["V020","EQ02","1","B",6],["V020","CE01","Y","A",8],["V020","CP01","200","B",11],["V020","FM02","Y","B",9],["V020","FM03","Y","B",14],["V020","CP03","25","B",3],["V021","EQ01","1.0","B",9],["V021","EQ02","2","B",6],["V021","CE02","Y","A",2],["V021","CP01","200","B",2],["V021","EQ03","Y","C",6],["V021","EQ04","Y","B",11],["V021","RK01","14","A",3],["V022","CE01","Y","A",4],["V022","CP01","250","B",9],["V022","FM01","Y","B",6],["V022","FM02","Y","B",9],["V022","QA01","Y","A",2],["V023","EQ01","3.0","B",9],["V023","EQ02","2","B",6],["V023","CE01","Y","A",1],["V023","CE03","Y","B",11],["V023","CP01","250","B",7],["V023","FM01","Y","B",1],["V023","EQ06","Y","B",9],["V023","CP03","45","B",3],["V024","EQ01","2.0","B",13],["V024","EQ02","3","B",8],["V024","CE01","Y","A",6],["V024","CP01","200","B",2],["V024","CP03","25","B",9],["V025","EQ01","5.0","B",9],["V025","EQ02","2","B",8],["V025","CE01","N","A",8],["V025","CP01","250","B",11],["V025","FM04","Y","B",12],["V026","EQ01","2.0","B",1],["V026","EQ02","3","B",6],["V026","CE01","Y","A",6],["V026","CP01","150","B",2],["V026","CP03","25","B",13],["V027","EQ01","3.0","B",15],["V027","EQ02","2","B",6],["V027","CE01","Y","A",1],["V027","CP01","300","B",5],["V027","RK01","88","A",3],["V027","CP03","30","B",9],["V028","EQ01","2.0","B",15],["V028","EQ02","3","B",8],["V028","CP01","250","B",4],["V028","EQ07","Y","A",2],["V028","CP03","45","B",7],["V029","EQ01","5.0","B",13],["V029","EQ02","2","B",4],["V029","CE01","Y","A",6],["V029","CP01","250","B",5],["V029","FM01","Y","B",3],["V029","FM02","Y","B",2],["V029","QA01","Y","A",2],["V030","EQ01","5.0","B",2],["V030","EQ02","2","B",6],["V030","CP01","250","B",4],["V030","RK01","45","A",2]];
+const DICT=[["EQ01","유화기 최대용량","EQ","num","T",12],["EQ02","유화기 보유대수","EQ","num","대",12],["EQ03","튜브 충전","EQ","yn","",12],["EQ04","자(단지) 충전","EQ","yn","",12],["EQ05","펌프·디스펜서 충전","EQ","yn","",12],["EQ06","앰플·스틱 충전","EQ","yn","",12],["EQ07","마스크팩·하이드로겔","EQ","yn","",12],["CE01","CGMP","CE","yn","",12],["CE02","ISO 22716","CE","yn","",12],["CE03","비건 인증","CE","yn","",12],["CE04","유기농·COSMOS","CE","yn","",12],["CE05","할랄","CE","yn","",12],["CE06","중국 NMPA","CE","yn","",12],["CP01","월 생산 캐파","CP","num","만개",6],["CP02","최소 발주량(MOQ)","CP","num","개",6],["CP03","리드타임","CP","num","일",6],["FM01","기초 대응","FM","yn","",12],["FM02","색조 대응","FM","yn","",12],["FM03","선케어 대응","FM","yn","",12],["FM04","헤어·바디 대응","FM","yn","",12],["QA01","자체 시험실","QA","yn","",12],["RK01","종업원 수","RK","num","명",12]];
+
+</script>
+<script>
+(function(){
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const tip=$('#tip');
+function showTip(e,html){tip.innerHTML=html;tip.hidden=false;moveTip(e)}
+function moveTip(e){const w=tip.offsetWidth,h=tip.offsetHeight;let x=e.clientX+14,y=e.clientY+14;if(x+w>innerWidth-8)x=e.clientX-w-14;if(y+h>innerHeight-8)y=e.clientY-h-14;tip.style.left=Math.max(8,x)+'px';tip.style.top=Math.max(8,y)+'px'}
+function hideTip(){tip.hidden=true}
+function bindTip(el,html){el.addEventListener('mouseenter',e=>showTip(e,html));el.addEventListener('mousemove',moveTip);el.addEventListener('mouseleave',hideTip)}
+
+/* ── 1. 자동화 지도 ── */
+const STAGES=[['수요 예측','TAB05'],['신규처 발굴','TRACK B'],['사전 검증','L0'],['역량 조사','L1·G2'],['방문 실사','L2·G3'],['등록 평가','G4'],['발주·생산일정','PO'],['입고·품질','QC'],['정기 재평가','G5']];
+const TOOLS=[
+ ['TAB05 트렌드','moduel05',['auto','semi','','','','','','','']],
+ ['vendor-scout','공공 API 검증',['','semi','auto','','semi','','','','']],
+ ['CosmeDB','마스터·조사·평가 연결',['','','','semi','','semi','','','manual']],
+ ['방문예정처','Visit_schedule',['','','','','semi','','','','']],
+ ['등록평가 시스템','cosmeticdb',['','','','','','manual','','','']],
+ ['스케줄러','개인 캘린더·할 일',['','','','','manual','','manual','manual','']]
+];
+const LV={auto:'자동',semi:'반자동',manual:'수작업','':'—'};
+const rank={auto:3,semi:2,manual:1,'':0};
+let h='<thead><tr><th>도구</th>'+STAGES.map((s,i)=>`<th${gap(i)?' class="gapcol"':''}>${s[0]}<span class="st">${s[1]}</span></th>`).join('')+'</tr></thead><tbody>';
+function best(i){return Math.max(...TOOLS.map(t=>rank[t[2][i]]))}
+function gap(i){return best(i)<2}
+TOOLS.forEach(t=>{h+=`<tr><th>${t[0]}<small>${t[1]}</small></th>`+t[2].map((v,i)=>`<td${gap(i)?' class="gapcol"':''}>${v?`<span class="cell"><i class="dot ${v}"></i>${LV[v]}</span>`:'<span class="muted">—</span>'}</td>`).join('')+'</tr>'});
+const BL=['','manual','semi','auto'];
+h+='</tbody><tfoot><tr><th>단계 최고 수준</th>'+STAGES.map((s,i)=>{const b=BL[best(i)];return `<td${gap(i)?' class="gapcol"':''}><span class="cell"><i class="dot ${b}"></i>${b?LV[b]:'도구 없음'}</span></td>`}).join('')+'</tr></tfoot>';
+$('#covTable').innerHTML=h;
+
+/* ── 2. 역량 채움률 (문서 기준 63개사) ── */
+const COV={EQ01:26,EQ02:26,EQ03:19,EQ04:4,EQ05:0,EQ06:0,EQ07:9,CE01:40,CE02:18,CE03:9,CE04:0,CE05:3,CE06:1,CP01:4,CP02:0,CP03:12,FM01:16,FM02:4,FM03:2,FM04:15,QA01:28,RK01:24};
+const DN={};DICT.forEach(d=>DN[d[0]]={n:d[1],g:d[2],t:d[3],u:d[4],ttl:d[5]});
+DN.CE04=DN.CE04||{n:'유기농·COSMOS',g:'CE',ttl:12};DN.CE05=DN.CE05||{n:'할랄',g:'CE',ttl:12};DN.CE06=DN.CE06||{n:'중국 NMPA',g:'CE',ttl:12};DN.CP02=DN.CP02||{n:'최소 발주량(MOQ)',g:'CP',ttl:6};
+const GN={ALL:'전체',EQ:'설비',CE:'인증',CP:'캐파',FM:'제형',QA:'품질',RK:'리스크'};
+let capG=(()=>{try{return localStorage.getItem('tab06_capG')||'ALL'}catch(e){return 'ALL'}})();
+$('#capChips').innerHTML=Object.keys(GN).map(g=>`<button type="button" class="chip" data-g="${g}" aria-pressed="${g===capG}">${GN[g]}</button>`).join('');
+$('#capChips').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;capG=b.dataset.g;try{localStorage.setItem('tab06_capG',capG)}catch(_){}$('#capChips').querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed',c.dataset.g===capG));drawCap()});
+function drawCap(){
+  const rows=Object.entries(COV).filter(([k])=>capG==='ALL'||k.slice(0,2)===capG).sort((a,b)=>b[1]-a[1]);
+  const box=$('#capBars');box.innerHTML='';
+  rows.forEach(([k,n])=>{const p=n/63*100;const d=DN[k]||{n:k};const r=document.createElement('div');r.className='bar-row';
+    r.innerHTML=`<span class="lab"><code>${k}</code>${esc(d.n)}</span><span class="track"><span class="fill${p<10?' low':''}" style="width:${p}%"></span></span><span class="val">${Math.round(p)}% <span class="muted">(${n})</span></span>`;
+    bindTip(r,`<b>${k} ${esc(d.n)}</b><br>${n} / 63개사 · ${p.toFixed(1)}%<br>유효기간 ${d.ttl||'—'}개월${p<10?'<br>⚠ 배정 시 매번 문의가 필요한 수준':''}`);box.appendChild(r)});
+}
+drawCap();
+
+/* ── 3. 신뢰도·신선도 (데모) ── */
+const vals=DEMO_C.map(([c,k,v,g,m])=>({c,k,v,g,m,ttl:(DN[k]||{}).ttl||12}));
+function stack(id,lg,parts){const tot=parts.reduce((s,p)=>s+p.n,0);const el=$(id);el.innerHTML='';
+  parts.filter(p=>p.n>0).forEach(p=>{const d=document.createElement('div');d.style.flex=p.n;d.style.background=p.c;bindTip(d,`<b>${esc(p.l)}</b><br>${p.n}건 · ${(p.n/tot*100).toFixed(0)}%`);el.appendChild(d)});
+  $(lg).innerHTML=parts.map(p=>`<span><i class="dot" style="background:${p.c}"></i>${esc(p.l)} <b>${p.n}</b> <span class="muted">${(p.n/tot*100).toFixed(0)}%</span></span>`).join('')}
+const cnt=(a,f)=>a.filter(f).length;
+stack('#stGrade','#lgGrade',[{l:'A 공식',n:cnt(vals,x=>x.g==='A'),c:'var(--s1)'},{l:'B 업체 회신',n:cnt(vals,x=>x.g==='B'),c:'var(--s2)'},{l:'C 구두·추정',n:cnt(vals,x=>x.g==='C'),c:'var(--s3)'}]);
+const fresh=cnt(vals,x=>x.m<=x.ttl),soon=cnt(vals,x=>x.m<=x.ttl&&x.m>x.ttl-2),exp=vals.length-fresh;
+stack('#stTtl','#lgTtl',[{l:'유효',n:fresh-soon,c:'var(--good)'},{l:'2개월 내 만료',n:soon,c:'var(--warn)'},{l:'기한 지남 → 재확인',n:exp,c:'var(--serious)'}]);
+const PROG=['완료','진행중','답변대기중','확인필요'];
+stack('#stProg','#lgProg',PROG.map((p,i)=>({l:p,n:cnt(DEMO_V,v=>v[3]===p),c:['var(--good)','var(--s1)','var(--warn)','var(--serious)'][i]})));
+// 수집 경로는 원본 s 필드 대신 등급과 항목코드로 묶는다(데모 데이터 압축본에는 s가 없음)
+const l0=cnt(vals,x=>x.g==='A'&&/^(CE01|RK01)$/.test(x.k)),site=cnt(vals,x=>x.g==='A'&&!/^(CE01|RK01)$/.test(x.k));
+stack('#stSrc','#lgSrc',[{l:'L0 공공데이터(자동 가능)',n:l0,c:'var(--s1)'},{l:'L1 업체 회신·구두',n:cnt(vals,x=>x.g!=='A'),c:'var(--s2)'},{l:'L2 실사·인증서',n:site,c:'var(--s3)'}]);
+const selfPct=Math.round(cnt(vals,x=>x.g!=='A')/vals.length*100);
+$('#fSelf').innerHTML=`${selfPct}<small>% 업체·구두</small>`;
+$('#qNote').textContent=`역량값 ${vals.length}건 중 ${exp}건(${Math.round(exp/vals.length*100)}%)이 유효기간을 넘겼습니다. G5 재검증을 자동 발송하면 "변경 없음" 회신만으로 대부분 갱신됩니다. 답변대기·확인필요 업체는 ${cnt(DEMO_V,v=>v[3]==='답변대기중'||v[3]==='확인필요')}곳입니다.`;
+
+/* ── 4. 시뮬레이터 ── */
+const REQ={FM:[['FM01','기초'],['FM02','색조'],['FM03','선케어'],['FM04','헤어·바디']],EQF:[['EQ03','튜브'],['EQ04','자(단지)'],['EQ05','펌프'],['EQ06','앰플·스틱'],['EQ07','마스크팩']],CE:[['CE01','CGMP'],['CE02','ISO 22716'],['CE03','비건']]};
+let sel=new Set(['CE01']);
+document.querySelectorAll('[data-req]').forEach(box=>{box.innerHTML=REQ[box.dataset.req].map(([k,l])=>`<button type="button" class="chip" data-k="${k}" aria-pressed="${sel.has(k)}">${l}</button>`).join('');
+  box.addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;const k=b.dataset.k;sel.has(k)?sel.delete(k):sel.add(k);b.setAttribute('aria-pressed',sel.has(k));runSim()})});
+['#selKettle','#selCapa','#selLead'].forEach(s=>$(s).addEventListener('change',runSim));
+const byV={};vals.forEach(x=>{(byV[x.c]=byV[x.c]||{})[x.k]=x});
+const LBL={};Object.values(REQ).flat().forEach(([k,l])=>LBL[k]=l);
+function runSim(){
+  const reqs=[...sel].map(k=>({k,l:LBL[k],test:v=>v.v==='Y'}));
+  const kt=+$('#selKettle').value,cp=+$('#selCapa').value,ld=+$('#selLead').value;
+  if(kt)reqs.push({k:'EQ01',l:`유화기 ${kt}T↑`,test:v=>parseFloat(v.v)>=kt});
+  if(cp)reqs.push({k:'CP01',l:`캐파 ${cp}만↑`,test:v=>parseFloat(v.v)>=cp});
+  if(ld)reqs.push({k:'CP03',l:`리드 ${ld}일↓`,test:v=>parseFloat(v.v)<=ld});
+  const res=DEMO_V.map(([id,name,reg,prog])=>{const cv=byV[id]||{};
+    const st=reqs.map(r=>{const v=cv[r.k];if(!v)return 'un';if(!r.test(v))return 'no';return v.m>v.ttl?'re':'ok'});
+    const ok=st.filter(s=>s==='ok').length,re=st.filter(s=>s==='re').length,un=st.filter(s=>s==='un').length,no=st.filter(s=>s==='no').length;
+    return {id,name,reg,st,ok,re,un,no,score:no?-1:ok*2+re*1.5+un*0.2};
+  }).sort((a,b)=>b.score-a.score||b.ok-a.ok);
+  const N=reqs.length;
+  const ready=res.filter(r=>r.ok===N).length,recheck=res.filter(r=>!r.no&&!r.un&&r.re).length,ask=res.filter(r=>!r.no&&r.un);
+  const qs=ask.reduce((s,r)=>s+r.un,0),excl=res.filter(r=>r.no).length;
+  $('#simSum').innerHTML=N?`<span><b class="num">${ready}</b>곳 즉시 배정 가능</span><span><b class="num">${recheck}</b>곳 재확인 후 가능</span><span><b class="num">${ask.length}</b>곳 문진 필요 (질문 ${qs}개 자동 생성)</span><span><b class="num">${excl}</b>곳 조건 불충족 제외</span>`:'<span>조건을 하나 이상 고르세요.</span>';
+  const top=res.filter(r=>!r.no).slice(0,10);
+  let t='<thead><tr><th>#</th><th>업체 <span class="muted">(가상)</span></th><th>조건별 상태</th><th>다음 조치</th></tr></thead><tbody>';
+  top.forEach((r,i)=>{const act=r.ok===N?'<span class="cell"><i class="dot ok"></i>배정 후보 → 견적 요청</span>':r.un?`<span class="cell"><i class="dot un"></i>문진 ${r.un}문항 발송</span>`:`<span class="cell"><i class="dot re"></i>재확인 ${r.re}건 발송</span>`;
+    t+=`<tr><td class="r">${i+1}</td><td><b>${esc(r.name)}</b> <span class="muted">${esc(r.reg)} · ${r.id}</span><div class="meter">${r.st.map(s=>`<i class="${s==='ok'?'ok':s==='re'?'re':''}"></i>`).join('')}</div></td><td><div class="rq">${reqs.map((q,j)=>`<span><i class="dot ${r.st[j]}"></i>${esc(q.l)}</span>`).join('')}</div></td><td class="act">${act}</td></tr>`});
+  if(!top.length&&N)t+='<tr><td colspan="4" class="muted">조건을 모두 만족할 수 있는 업체가 없습니다. 조건을 줄이거나 TRACK B 신규처 탐색으로 넘기세요.</td></tr>';
+  $('#simTable').innerHTML=t+'</tbody>';
+}
+runSim();
+
+/* ── 5. 매트릭스 ── */
+const OPS=[
+ [1,'사업자번호 자동 확보·매칭',5,2,'vendor-scout fsc_corp → CosmeDB biz_no. 매칭 판정이 단순 조회로 바뀜'],
+ [1,'공유 저장소 전환',5,4,'구글시트+Apps Script. 4개 도구의 localStorage 탈피'],
+ [1,'컨택로그 일자·이력 자동 기록',3,1,'43행 일자 공란 해소, 상태 변경 시 타임스탬프'],
+ [2,'L1 문진표 자가입력 링크',5,3,'구글폼 문항=항목코드, 회신이 곧 적재'],
+ [2,'TTL 만료 재확인 자동 발송',4,2,'기존값 첨부 + "변경 없음" 체크, G5 상시화'],
+ [2,'CGMP·회수·처분 일일 감시',5,2,'vendor-scout mfds_gmp를 Actions 일일 실행, 등록업체만 알림'],
+ [2,'인원 변동 이탈 신호',3,2,'국민연금 월 취득/상실 → 급감 시 경고'],
+ [2,'방문·납기 일정 ICS 연동',3,2,'방문예정처·PO 일정을 스케줄러로'],
+ [3,'자동 배정 + 견적 요청',4,3,'이 페이지의 시뮬레이터 로직을 CosmeDB에 탑재'],
+ [3,'발주(PO)·납기 추적기',5,4,'약속 납기 대비 지연 D-day, 지연 자동 알림'],
+ [3,'입고 QC·부적합 로그',4,4,'LOT 판정 → 업체 스코어카드로 환류'],
+ [3,'트렌드-역량 갭 알림',4,3,'TAB05 상승 제형 vs FM·EQ 채움률, 부족 시 TRACK B 자동 실행']
+];
+const PC=['','var(--s1)','var(--s2)','var(--s3)'];
+const svg=$('#mxSvg');const W=520,H=400,L=48,R=16,T=16,B=44;
+const sx=v=>L+(v-0.5)/5*(W-L-R),sy=v=>T+(5.5-v)/5*(H-T-B);
+let s=`<rect x="${L}" y="${T}" width="${(W-L-R)/2}" height="${(H-T-B)/2}" fill="var(--surface-2)"/>`;
+for(let i=1;i<=5;i++){s+=`<line x1="${sx(i)}" x2="${sx(i)}" y1="${T}" y2="${H-B}" stroke="var(--line)"/><line x1="${L}" x2="${W-R}" y1="${sy(i)}" y2="${sy(i)}" stroke="var(--line)"/><text x="${sx(i)}" y="${H-B+16}" text-anchor="middle">${i}</text><text x="${L-10}" y="${sy(i)+4}" text-anchor="end">${i}</text>`}
+s+=`<text class="ql" x="${(L+W-R)/2}" y="${H-6}" text-anchor="middle">구현 난이도 →</text><text class="ql" x="14" y="${(T+H-B)/2}" text-anchor="middle" transform="rotate(-90 14 ${(T+H-B)/2})">효과 →</text><text class="ql" x="${L+8}" y="${T+16}">먼저 할 일</text>`;
+const seen={};
+OPS.forEach((o,i)=>{const key=o[2]+'-'+o[3];const n=seen[key]=(seen[key]||0)+1;const off=[[0,0],[22,0],[-22,0],[0,22],[22,22]][n-1]||[0,-22];
+  s+=`<g class="pt" data-i="${i}" transform="translate(${sx(o[3])+off[0]-(n>1?0:0)},${sy(o[2])+off[1]})"><circle r="10" fill="${PC[o[0]]}"/><text text-anchor="middle" y="4">${i+1}</text></g>`});
+svg.innerHTML=s;
+$('#mxList').innerHTML=OPS.map((o,i)=>`<li data-i="${i}"><span class="n" style="background:${PC[o[0]]}">${i+1}</span><span>${esc(o[1])}<small>효과 ${o[2]} · 난이도 ${o[3]} — ${esc(o[4])}</small></span></li>`).join('');
+function hl(i,on){svg.querySelector(`.pt[data-i="${i}"]`)?.classList.toggle('on',on);$('#mxList').querySelector(`li[data-i="${i}"]`)?.classList.toggle('on',on)}
+svg.querySelectorAll('.pt').forEach(g=>{const i=+g.dataset.i,o=OPS[i];g.addEventListener('mouseenter',e=>{hl(i,true);showTip(e,`<b>${i+1}. ${esc(o[1])}</b><br>효과 ${o[2]} · 난이도 ${o[3]} · ${o[0]}단계<br>${esc(o[4])}`)});g.addEventListener('mousemove',moveTip);g.addEventListener('mouseleave',()=>{hl(i,false);hideTip()})});
+$('#mxList').querySelectorAll('li').forEach(li=>{const i=+li.dataset.i;li.addEventListener('mouseenter',()=>hl(i,true));li.addEventListener('mouseleave',()=>hl(i,false))});
+
+/* ── 6. KPI ── */
+const KPI=[
+ ['납기 준수율 (OTD)','약속 납기 내 입고 PO ÷ 전체 PO','95% 이상','PO 추적기(신규)','no'],
+ ['입고 LOT 부적합률','부적합 LOT ÷ 입고 LOT','0.5% 이하','입고 QC 로그(신규)','no'],
+ ['캐파 회신 리드타임','Capa 요청일 → 회신일','7일 이내','방문예정처 (7일 경과 알림 있음)','part'],
+ ['문진 회신율 (G2)','필수 항목 회신 ÷ 요청 항목','80% 이상','L1 문진표 링크','part'],
+ ['방문→등록 전환율','등록완료 ÷ 방문완료','팀 기준 설정','CosmeDB 상태값','yes'],
+ ['역량 데이터 신선도','TTL 내 값 ÷ 전체 값',`현재 ${Math.round(fresh/vals.length*100)}% (데모)`,'CosmeDB 역량값','yes'],
+ ['CGMP 유효 비율','CGMP 적합 등록업체 ÷ 등록업체','100%','vendor-scout 식약처 GMP','yes'],
+ ['외주 집중도','상위 1개사 발주금액 비중','품목군별 상한','PO 추적기(신규)','no']
+];
+const KS={yes:['ok','지금 측정'],part:['re','일부 측정'],no:['no','모듈 필요']};
+$('#kpiTable').innerHTML='<thead><tr><th>지표</th><th>계산식</th><th>목표(제안)</th><th>데이터 출처</th><th>지금 측정</th></tr></thead><tbody>'+KPI.map(k=>`<tr><td><b>${k[0]}</b></td><td class="f">${k[1]}</td><td>${k[2]}</td><td>${k[3]}</td><td><span class="st-pill"><i class="dot ${KS[k[4]][0]}"></i>${KS[k[4]][1]}</span></td></tr>`).join('')+'</tbody>';
+
+/* ── 7. 로드맵 ── */
+const ROAD=[
+ ['1단계 · 데이터 기반','0~4주','var(--s1)',[['사업자번호 열 추가 + vendor-scout 자동 채움','매칭 정확도의 근본 해결 (MATCHING.md 최우선 과제)'],['구글시트 공유 저장소로 CosmeDB·방문예정처 연결','팀 동시 편집, 이후 모든 자동화의 전제'],['컨택로그 일자·사업장(sites) 분리','63개사인 지금이 가장 저렴 (MIGRATION.md)']]],
+ ['2단계 · 수집 자동화','1~3개월','var(--s2)',[['L1 문진표 링크 발송 + 회신 자동 적재','재확인 대상엔 기존값과 "변경 없음" 체크'],['GitHub Actions 일일 감시: CGMP·회수·인원 변동','moduel05 수집 워크플로를 그대로 본뜸'],['TTL 만료 30일 전 재확인 자동 발송 (G5)','"3년 뒤 데이터가 죽는" 문제 차단']]],
+ ['3단계 · 생산 운영 (TAB06)','3~6개월','var(--s3)',[['자동 배정 → 견적·발주(PO) → 납기 추적','시뮬레이터 로직 + 스케줄러 ICS 연동'],['입고 QC·부적합 로그와 업체 스코어카드','실적을 역량값으로 되돌려 마스터 갱신'],['TAB05 트렌드-역량 갭 알림','부족 제형은 TRACK B 신규처 탐색으로 자동 연결']]]
+];
+$('#road').innerHTML=ROAD.map(r=>`<div class="ph"><span class="when">${r[1]}</span><h3><span class="swatch" style="background:${r[2]}"></span>${r[0]}</h3><ul>${r[3].map(x=>`<li>${x[0]}<small>${x[1]}</small></li>`).join('')}</ul></div>`).join('');
+})();
+</script>
+
+</body>
+</html>
